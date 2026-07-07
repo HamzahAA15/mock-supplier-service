@@ -47,8 +47,38 @@ AIRLINES = {
         "fare": 55.00,
         "tax": 7.00,
     },
+    "AK": {
+        "flight_number": "AK400",
+        "dep_time": "06:00:00",
+        "arr_time": "08:00:00",
+        "duration": 120,
+        "aircraft": "A320",
+        "fba_kg": 0,
+        "fare": 50.00,
+        "tax": 6.00,
+    },
+    "SQ": {
+        "flight_number": "SQ500",
+        "dep_time": "18:00:00",
+        "arr_time": "20:00:00",
+        "duration": 120,
+        "aircraft": "B77W",
+        "fba_kg": 20,
+        "fare": 120.00,
+        "tax": 15.00,
+    },
+    "JL": {
+        "flight_number": "JL600",
+        "dep_time": "20:00:00",
+        "arr_time": "22:00:00",
+        "duration": 120,
+        "aircraft": "B788",
+        "fba_kg": 15,
+        "fare": 110.00,
+        "tax": 14.00,
+    },
 }
 
-AIRLINE_ORDER = ["JT", "GA", "QZ"]
+AIRLINE_ORDER = ["JT", "GA", "QZ", "AK", "SQ", "JL"]
 
 FLIGHT_TO_AIRLINE = {v["flight_number"]: k for k, v in AIRLINES.items()}

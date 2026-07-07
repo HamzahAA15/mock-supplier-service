@@ -18,7 +18,7 @@ and the `API sample/` request/response captures.
   on the exact contract paths.
 - **Why:** A deterministic, restart-tolerant stub for aggregator integration/QA.
 - **Who:** Integration + QA engineers.
-- **Airlines (v1):** `JT`, `GA`, `QZ` — one flight each, returned for *any* route and *any* future date.
+- **Airlines (v1):** `JT`, `GA`, `QZ`, `AK`, `SQ`, `JL` — one flight each, returned for *any* route and *any* future date.
 - **Product:** `BASIC` only; no modified inventory.
 - **Non-goals (v1):** auth enforcement, `cancel`, `getseat`, round-trip, transit/stopover,
   non-BASIC products, cross-restart persistence, rate limiting.
@@ -48,7 +48,7 @@ and the `API sample/` request/response captures.
 | 5 | Same offerKey from search → orderDetail | Deterministic stateless offerKey (§6); order store also retains it |
 | 6 | Randomize 10-digit orderId | `random 10-digit numeric string` at order time (§7.5) |
 | 7 | Echo passenger details from request | Order stores and OrderDetail returns request passengers verbatim (§7.5, §7.7) |
-| 8 | JT & QZ FBA 0 kg, GA 20 kg | Per-airline `FREECHECKEDBAGGAGE` in Search + AncillarySearch (§4, §7.2) |
+| 8 | Per-airline FBA (JT/QZ/AK 0 kg, GA/SQ 20 kg, JL 15 kg) | Per-airline `FREECHECKEDBAGGAGE` in Search + AncillarySearch (§4, §7.2) |
 | 9 | Ancillary options = multiples of 5 above FBA | AncillarySearch generates 3 `CHECKEDBAGGAGE` options (§7.4) |
 
 ### 3.1 Echo principle (must hold)
@@ -85,6 +85,9 @@ anchored to the requested `depDate`.
 | JT | JT100 | 08:00 → 10:00 | 120 min | B739 | **0**  | 60.00 | 8.00 |
 | GA | GA200 | 12:00 → 14:00 | 120 min | B738 | **20** | 95.00 | 12.00 |
 | QZ | QZ300 | 16:00 → 18:00 | 120 min | A320 | **0**  | 55.00 | 7.00 |
+| AK | AK400 | 06:00 → 08:00 | 120 min | A320 | **0**  | 50.00 | 6.00 |
+| SQ | SQ500 | 18:00 → 20:00 | 120 min | B77W | **20** | 120.00 | 15.00 |
+| JL | JL600 | 20:00 → 22:00 | 120 min | B788 | **15** | 110.00 | 14.00 |
 
 - `marketingCarrier` = `operatingCarrier` = airline code; `codeShare: false`.
 - `seatCount`: fixed (e.g. 9); `cabin: "Y"`, `seatClass: "Y"`.
@@ -185,8 +188,9 @@ All paths are `POST`. Success = `code: 0, msg: "success"` unless noted.
 - **Req:** `{ "offerKey": "..." }`.
 - **Success `data`:** `{ "currency": "USD", "ancillaryOffers": [...] }`.
 - Generates **3 `CHECKEDBAGGAGE`** options as multiples of 5 above the airline's FBA:
-  - JT/QZ (FBA 0): 5, 10, 15 kg → e.g. price `kg * 1.5` USD.
-  - GA (FBA 20): 25, 30, 35 kg.
+  - JT/QZ/AK (FBA 0): 5, 10, 15 kg → e.g. price `kg * 1.5` USD.
+  - GA/SQ (FBA 20): 25, 30, 35 kg.
+  - JL (FBA 15): 20, 25, 30 kg.
   - Each: `ancillaryKey` (§6), `ancillaryCode` (kg), `ancillaryPiece: 1`, `unitOfMeasurement: "WEIGHT"`,
     `desc: "<kg>kg"`, `oriAirport`, `destAirport`, `transferAirport: ""`, `flightNumber`, `price`.
 

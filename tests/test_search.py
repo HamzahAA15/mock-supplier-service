@@ -8,17 +8,18 @@ def decode_key(offer_key):
     return base64.urlsafe_b64decode(padded).decode()
 
 
-def test_happy_path_three_offers(client):
+def test_happy_path_all_offers(client):
     res = client.post("/flight/search/v3", json=search_body())
     body = res.json()
     assert res.status_code == 200
     assert body["code"] == 0 and body["msg"] == "success"
     data = body["data"]
     assert data["currency"] == "USD"
-    assert len(data["offers"]) == 3
-    assert len(data["flights"]) == 3
-    assert len(data["segments"]) == 3
-    assert len(data["ancillaries"]) == 3
+    # One offer per airline in AIRLINE_ORDER: JT, GA, QZ, AK, SQ, JL.
+    assert len(data["offers"]) == 6
+    assert len(data["flights"]) == 6
+    assert len(data["segments"]) == 6
+    assert len(data["ancillaries"]) == 6
     assert data["penalties"] == []
 
     # Doc example offerKeys are reproduced exactly (CGK->DPS 2026-07-10).
@@ -26,13 +27,14 @@ def test_happy_path_three_offers(client):
     assert keys[0] == "SlR8Q0dLfERQU3wyMDI2LTA3LTEwfEJBU0lD"
     assert decode_key(keys[1]) == "GA|CGK|DPS|2026-07-10|BASIC"
 
-    # Per-airline FBA (req #8): JT 0, GA 20, QZ 0; piece 0 when FBA=0.
+    # Per-airline FBA (req #8), in order; piece 0 when FBA=0.
+    # JT 0, GA 20, QZ 0, AK 0, SQ 20, JL 15.
     fbas = [(a["ancillaryCode"], a["ancillaryPiece"]) for a in data["ancillaries"]]
-    assert fbas == [(0, 0), (20, 1), (0, 0)]
+    assert fbas == [(0, 0), (20, 1), (0, 0), (0, 0), (20, 1), (15, 1)]
     assert all(a["ancillaryType"] == "FREECHECKEDBAGGAGE" for a in data["ancillaries"])
 
-    # QZ is the cheapest offer.
-    assert [o["cheapestOption"] for o in data["offers"]] == [False, False, True]
+    # AK is now the cheapest offer (fare 50), at index 3.
+    assert [o["cheapestOption"] for o in data["offers"]] == [False, False, False, True, False, False]
 
     # Charges: 1 adult -> ADT FARE+TAX only.
     jt = data["offers"][0]["charges"]
