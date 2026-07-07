@@ -198,6 +198,17 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
 | 1 | GA | `GA\|CGK\|DPS\|2026-07-10\|BASIC` | 1 | 95.00 | 12.00 | 1 (20) |
 | 2 | QZ | `QZ\|CGK\|DPS\|2026-07-10\|BASIC` | 2 | 55.00 | 7.00 | 2 (0) |
 
+The full v1 inventory has **6 airlines**. Omitting `airlineIds` returns one offer per airline
+(order: JT, GA, QZ, AK, SQ, JL); the example above filters to the first three. The rest:
+
+| index | airline | offerKey (decoded) | FARE | TAX | FBA kg | ancillary ladder (kg) |
+|---|---|---|---|---|---|---|
+| 3 | AK | `AK\|CGK\|DPS\|2026-07-10\|BASIC` | 50.00 | 6.00 | 0  | 5, 10, 15 |
+| 4 | SQ | `SQ\|CGK\|DPS\|2026-07-10\|BASIC` | 120.00 | 15.00 | 20 | 25, 30, 35 |
+| 5 | JL | `JL\|CGK\|DPS\|2026-07-10\|BASIC` | 110.00 | 14.00 | 15 | 20, 25, 30 |
+
+`cheapestOption` is on the lowest fare among the *returned* offers — AK (50.00) when all six are returned.
+
 **Error response — backdate (req #3), `depDate < today`**
 ```json
 { "code": 205, "msg": "The departure date cannot be earlier than the current time", "data": null }

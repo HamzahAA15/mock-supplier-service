@@ -768,11 +768,14 @@
                   "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
                   "}",
                   "",
-                  "pm.test(\"still exactly 3 offers {JT,GA,QZ}\", function(){",
-                  "  pm.expect(d.segments.map(function(s){return s.marketingCarrier;}).sort()).to.eql([\"GA\",\"JT\",\"QZ\"]);",
+                  "pm.test(\"all 6 airlines returned {AK,GA,JL,JT,QZ,SQ}\", function(){",
+                  "  pm.expect(d.segments.map(function(s){return s.marketingCarrier;}).sort())",
+                  "    .to.eql([\"AK\",\"GA\",\"JL\",\"JT\",\"QZ\",\"SQ\"]);",
                   "});",
-                  "pm.test(\"JT&QZ FBA==0, GA==20\", function(){",
-                  "  pm.expect(fbaFor(\"JT\")).to.eql(0); pm.expect(fbaFor(\"QZ\")).to.eql(0); pm.expect(fbaFor(\"GA\")).to.eql(20);",
+                  "pm.test(\"FBA per airline: JT/QZ/AK 0, GA/SQ 20, JL 15\", function(){",
+                  "  pm.expect(fbaFor(\"JT\")).to.eql(0); pm.expect(fbaFor(\"QZ\")).to.eql(0); pm.expect(fbaFor(\"AK\")).to.eql(0);",
+                  "  pm.expect(fbaFor(\"GA\")).to.eql(20); pm.expect(fbaFor(\"SQ\")).to.eql(20);",
+                  "  pm.expect(fbaFor(\"JL\")).to.eql(15);",
                   "});"
                 ]
               }

@@ -3,6 +3,9 @@ from app.services.offer_key import encode_offer_key
 GA_KEY = encode_offer_key("GA", "CGK", "DPS", "2026-07-10")
 JT_KEY = encode_offer_key("JT", "CGK", "DPS", "2026-07-10")
 QZ_KEY = encode_offer_key("QZ", "CGK", "DPS", "2026-07-10")
+AK_KEY = encode_offer_key("AK", "CGK", "DPS", "2026-07-10")
+SQ_KEY = encode_offer_key("SQ", "CGK", "DPS", "2026-07-10")
+JL_KEY = encode_offer_key("JL", "CGK", "DPS", "2026-07-10")
 
 
 def get_offers(client, key):
@@ -28,6 +31,25 @@ def test_jt_qz_options_above_fba_0(client):
         assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
         assert [o["price"] for o in offers] == [7.5, 15.0, 22.5]
         assert offers[0]["ancillaryKey"] == "1_0_0${}$PA5".format(flight)
+
+
+def test_ak_options_above_fba_0(client):
+    offers = get_offers(client, AK_KEY)
+    assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
+    assert offers[0]["ancillaryKey"] == "1_0_0$AK400$PA5"
+
+
+def test_sq_options_above_fba_20(client):
+    offers = get_offers(client, SQ_KEY)
+    assert [o["ancillaryCode"] for o in offers] == [25, 30, 35]
+    assert offers[0]["ancillaryKey"] == "1_0_0$SQ500$PA25"
+
+
+def test_jl_options_above_fba_15(client):
+    offers = get_offers(client, JL_KEY)
+    assert [o["ancillaryCode"] for o in offers] == [20, 25, 30]
+    assert [o["price"] for o in offers] == [30.0, 37.5, 45.0]
+    assert offers[0]["ancillaryKey"] == "1_0_0$JL600$PA20"
 
 
 def test_exactly_three_options(client):
