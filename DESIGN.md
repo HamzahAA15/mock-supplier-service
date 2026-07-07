@@ -218,10 +218,13 @@ All paths are `POST`. Success = `code: 0, msg: "success"` unless noted.
 - **Validation:** empty orderId → 745; not found → 148.
 - **Success `data`:** `orderInfo` (`orderId`, `product: ["BASIC"]`, `issuanceTimeInMins`, `status`,
   `createdTime`, `updateTime`, `expiredTime`, `payTime`, `amount`, `currency`, `accountNumber`),
-  `pnrs[]` (`pnr`, `email`, `segments[]`, `passengers[]` with `passenger` `"LAST/FIRST"`,
-  `ticketNumber` (populated once ISSUED), `cardNumber`), `ancillaryList[]`, `penalties[]`,
-  `ancillaries[]`, `flights[]`, `passengerList[]` (echoed verbatim, req #7),
-  `contactList[]`, `segments[]`.
+  `pnrs[]` (`pnr`, `providerPnr`, `email`, `segments[]` (light), `passengers[]` with `passenger` `"LAST/FIRST"`,
+  `ticketNumber` (populated once ISSUED), `cardNumber` (echoed from the pax)), `ancillaryList[]`,
+  `penalties[]`, `ancillaries[]`, `flightRefs[]` (`flightIndex`, `fareType`, `brandedFare`), `flights[]`,
+  `passengerList[]` (echoed verbatim, req #7), `contactList[]`, `segments[]` (**full** segment objects).
+  - **Segment shape note:** the top-level `segments[]` are full objects (as in Search); the nested
+    `pnrs[].segments[]` and `ancillaryList[].segments[]` are light (`depAirport`/`arrAirport`/`flightNumber`).
+    Matches the live supplier `orderDetail`/`submitBooking` capture.
 
 ---
 

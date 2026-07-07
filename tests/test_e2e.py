@@ -64,7 +64,13 @@ def test_e2e_booking_chain(client):
     assert len(tickets) == 2 and all(len(t) == 13 and t.isdigit() for t in tickets)
     assert after["data"]["passengerList"] == passengers
     assert after["data"]["contactList"] == contacts
-    assert after["data"]["segments"][0] == {
+    # Top-level segments are full objects; nested pnr segments stay light.
+    top_seg = after["data"]["segments"][0]
+    assert top_seg["marketingCarrier"] == "GA" and top_seg["flightNumber"] == "GA200"
+    assert top_seg["depAirport"] == "KNO" and top_seg["arrAirport"] == "CGK"
+    assert top_seg["depTime"].startswith("2026-09-20")
+    assert after["data"]["pnrs"][0]["segments"][0] == {
         "depAirport": "KNO", "arrAirport": "CGK", "flightNumber": "GA200"
     }
+    assert after["data"]["flightRefs"][0]["flightIndex"] == 0
     assert after["data"]["ancillaryList"][0]["passengerName"] == "SANTOSO/SITI"

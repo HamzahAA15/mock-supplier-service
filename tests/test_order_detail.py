@@ -15,11 +15,20 @@ def test_unpaid_order_detail(client):
     assert info["amount"] == "107.00"
     pnr = res["data"]["pnrs"][0]
     assert len(pnr["pnr"]) == 6 and pnr["pnr"].isalnum()  # PNR minted at order time
+    assert pnr["providerPnr"] == ""
     assert pnr["email"] == "agent@example.com"
     assert pnr["passengers"][0]["ticketNumber"] == ""  # not issued yet
-    assert res["data"]["segments"] == [
+    # Nested pnr segments are light; top-level segments are full objects.
+    assert pnr["segments"] == [
         {"depAirport": "CGK", "arrAirport": "DPS", "flightNumber": "GA200"}
     ]
+    top_seg = res["data"]["segments"][0]
+    assert top_seg["marketingCarrier"] == "GA" and top_seg["flightNumber"] == "GA200"
+    assert top_seg["depAirport"] == "CGK" and top_seg["arrAirport"] == "DPS"
+    assert top_seg["depTime"] == "2026-07-10 12:00:00" and top_seg["aircraftCode"] == "B738"
+    assert top_seg["stopovers"] == []
+    # flightRefs present at top level with fareType/brandedFare.
+    assert res["data"]["flightRefs"] == [{"flightIndex": 0, "fareType": "PUBLISH", "brandedFare": ""}]
 
 
 def test_offer_key_identity_search_to_order_detail(client):

@@ -207,21 +207,31 @@ def order_detail(req: OrderDetailRequest):
     full = inventory.build_offer_data(
         [airline], offer["ori"], offer["dest"], offer["dep_date"], counts
     )
-
-    ancillary_list = [
-        {
-            "ancillaryType": item["addAncillaryType"],
-            "ancillaryCode": item["ancillaryCode"],
-            "ancillaryPiece": item["ancillaryPiece"],
-            "unitOfMeasurement": item["unitOfMeasurement"],
-            "desc": item["desc"],
-            "passengerName": entry["passengerName"],
-            "cardNumber": "",
-            "segments": light_segments,
-        }
-        for entry in stored["addedAncillary"]
-        for item in entry["ancillaryOffers"]
+    # Top-level segments are FULL objects (matches the live supplier); the nested
+    # pnrs[].segments / ancillaryList[].segments stay light (dep/arr/flightNumber only).
+    full_segments = full["segments"]
+    flight_refs = [
+        {"flightIndex": ref["flightIndex"], "fareType": "PUBLISH", "brandedFare": ""}
+        for ref in full["offers"][0]["flightRefs"]
     ]
+
+    ancillary_list = []
+    for entry in stored["addedAncillary"]:
+        pax_idx = entry.get("passengerIndex")
+        pax_card = ""
+        if pax_idx is not None and 0 <= pax_idx < len(stored["passengers"]):
+            pax_card = stored["passengers"][pax_idx].get("cardNumber", "") or ""
+        for item in entry["ancillaryOffers"]:
+            ancillary_list.append({
+                "ancillaryType": item["addAncillaryType"],
+                "ancillaryCode": item["ancillaryCode"],
+                "ancillaryPiece": item["ancillaryPiece"],
+                "unitOfMeasurement": item["unitOfMeasurement"],
+                "desc": item["desc"],
+                "passengerName": entry["passengerName"],
+                "cardNumber": pax_card,
+                "segments": light_segments,
+            })
 
     data = {
         "orderInfo": {
@@ -241,13 +251,14 @@ def order_detail(req: OrderDetailRequest):
         "pnrs": [
             {
                 "pnr": stored["pnr"],
+                "providerPnr": "",
                 "email": stored["contacts"][0].get("email", "") if stored["contacts"] else "",
                 "segments": light_segments,
                 "passengers": [
                     {
                         "passenger": _passenger_name(p),
                         "ticketNumber": stored["ticketNumbers"].get(i, ""),
-                        "cardNumber": None,
+                        "cardNumber": p.get("cardNumber"),
                     }
                     for i, p in enumerate(stored["passengers"])
                 ],
@@ -256,9 +267,10 @@ def order_detail(req: OrderDetailRequest):
         "ancillaryList": ancillary_list,
         "penalties": [],
         "ancillaries": [inventory.build_fba_ancillary(airline)],
+        "flightRefs": flight_refs,
         "flights": full["flights"],
         "passengerList": stored["passengers"],
         "contactList": stored["contacts"],
-        "segments": light_segments,
+        "segments": full_segments,
     }
     return codes.success(data)

@@ -393,6 +393,7 @@ Errors: `745` orderId empty, `148` order does not exist, `748` duplicate payment
     "pnrs": [
       {
         "pnr": "X7GH2K",
+        "providerPnr": "",
         "email": "agent@example.com",
         "segments": [ { "depAirport": "CGK", "arrAirport": "DPS", "flightNumber": "GA200" } ],
         "passengers": [
@@ -407,6 +408,7 @@ Errors: `745` orderId empty, `148` order does not exist, `748` duplicate payment
     ],
     "penalties": [],
     "ancillaries": [ { "ancillaryType": "FREECHECKEDBAGGAGE", "ancillaryCode": 20, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "20kg" } ],
+    "flightRefs": [ { "flightIndex": 0, "fareType": "PUBLISH", "brandedFare": "" } ],
     "flights": [ "... same single-flight array as Order ..." ],
     "passengerList": [
       { "firstName": "CANDY FREDRICK", "lastName": "MURING BALA", "passengerType": "ADT",
@@ -416,9 +418,17 @@ Errors: `745` orderId empty, `148` order does not exist, `748` duplicate payment
       { "contactType": "AG", "firstName": "CANDY FREDRICK", "lastName": "MURING BALA",
         "email": "agent@example.com", "phone": "+62-8110000000" }
     ],
-    "segments": [ { "depAirport": "CGK", "arrAirport": "DPS", "flightNumber": "GA200" } ]
+    "segments": [
+      { "marketingCarrier": "GA", "flightNumber": "GA200", "operatingCarrier": "GA", "operatingFlightNumber": "GA200",
+        "depAirport": "CGK", "arrAirport": "DPS", "depTerminal": "", "arrTerminal": "",
+        "depTime": "2026-07-10 12:00:00", "arrTime": "2026-07-10 14:00:00", "codeShare": false,
+        "aircraftCode": "B738", "fareBasis": "", "brandedFare": "", "duration": 120, "stopovers": [] }
+    ]
   }
 }
+Note: top-level `segments` are full objects (as in Search); the nested `pnrs[].segments` and
+`ancillaryList[].segments` stay light (`depAirport`/`arrAirport`/`flightNumber`). `pnrs[].providerPnr`
+and top-level `flightRefs` (`flightIndex`/`fareType`/`brandedFare`) match the live supplier capture.
 ```
 Before Pay, `status: "UNPAID"`, `payTime: ""`, and `ticketNumber: ""` (PNR still generated at order time).
 Errors: `745` orderId empty, `148` order does not exist.
