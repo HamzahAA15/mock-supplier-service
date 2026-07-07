@@ -1,10 +1,44 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
 .venv/
 venv/
-*.egg-info/
+env/
+ENV/
+
+# Testing / coverage
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/
 
 # Newman / generated test reports
 reports/
+
+# Environment / secrets
+.env
+.env.*
+*.local
+
+# change_fulfillment: booking data + tokens (keep out of git)
+booking_ids.csv
+*.token
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
