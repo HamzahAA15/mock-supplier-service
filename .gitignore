@@ -33,6 +33,9 @@ reports/
 booking_ids.csv
 *.token
 
+# BPI raw request/response captures (contain real booking PII — keep out of git)
+bpi-rq-rs/
+
 # Editors / IDE
 .vscode/
 .idea/

@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.bpi_orders import store as bpi_store
 from app.services.orders import store
 
 
@@ -13,8 +14,10 @@ def client():
 @pytest.fixture(autouse=True)
 def _reset_store():
     store.clear()
+    bpi_store.clear()
     yield
     store.clear()
+    bpi_store.clear()
 
 
 def search_body(ori="CGK", dest="DPS", dep_date="2026-07-10", adult=1, child=0, infant=0, **extra):
