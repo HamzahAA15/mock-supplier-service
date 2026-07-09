@@ -184,3 +184,40 @@ echoed and the correct state transitions.
   `<adt>_<chd>_<inf>` prefix is **not** derived from searched pax counts. It is fixed at `1_0_0` (cosmetic).
   The earlier expectation of `2_0_0` for a 2-adult search was a mistake in this doc — tests assert only the
   `$<flight>$PA<kg>` suffix.
+
+---
+
+## BPI — Baggage Post-Issuance (tsy-bpi)
+
+Separate flow from the flight chain above: `search → order → orderDetail`, **no pay step**
+(a successful order is already paid). Envelope is `status: "0"` (string) / `msg: "success"`.
+Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: [`BPI_DESIGN.md`](./BPI_DESIGN.md).
+
+### TC-BPI-01 — Full chain
+
+1. **Search** `POST /postBaggage` with `segments[]` (passenger ignored). Then:
+   - `status == "0"`, `msg == "success"`, `auxiliaryOrderNo == null`.
+   - one `products[]` per RQ segment; each has **9** `productItems` (weights `[20,30,40,50,60,70,80,90,100]`,
+     prices `52.14…536.74`), `productType 1`, `saleType 2`, `baggagePieces 1`, `isAllWeight true`.
+   - `segment` echoed + enriched (`cabin:"B"`, `cabinGrade:"Y"`, `tripType:"1"`).
+   - `productItemId` = standard base64 of sha256 (deterministic, stateless). Capture the 70kg tier.
+2. **Order** `POST /orderCrossPostBaggage` with client `ancillaryOrderNo` + `passengerAuxes[]`
+   (each = `passengerInfo` + `segmentProducts{segment, productItem}` from search). Then:
+   - `status == "0"`, `auxiliaryOrderNo` **echoed** (never server-generated).
+   - the order's `productItemId` is re-derived from its RQ segment+weight and must match.
+3. **OrderDetail** `POST /ancillaryOrderDetail` with `{auxiliaryOrderNo}`. Then:
+   - `data.orderStatus == "PURCHASED"` (always, immediately), `totalPrice` = Σ ordered basePrice.
+   - `segments[].arrTime == null`; `passengerAncillaries[].segmentId` links to `segments[].id`;
+     `passengerName` = `"Last/First"`, `baggageWeight` = `str(kg)`, `pnrNo` = pax `pnrCode`.
+
+### BPI variations & negatives
+
+| Case | Request | Expected |
+|---|---|---|
+| Per-segment products | Search with 2 segments | 2 `products[]`, distinct `productItemId` per segment |
+| Passenger tolerance | Search with missing/empty/blank passenger | still `status "0"`, full 9-tier catalog |
+| Idempotent re-order | Order same `auxiliaryOrderNo` twice (different tier) | both `status "0"`; latest wins in orderDetail |
+| Invalid productItemId | Order with tampered `productItemId` | `{auxiliaryOrderNo: null, status: "1"}` |
+| Mismatched weight | Order id for 20kg but `baggageAllowance: 30` | `status "1"` (re-derivation fails) |
+| Empty auxiliaryOrderNo | Order without `ancillaryOrderNo`/`orderNo` | `status "1"` |
+| Unknown order | OrderDetail with unknown `auxiliaryOrderNo` (incl. after restart) | `{status: "1", msg: "order not found", data: null}` |

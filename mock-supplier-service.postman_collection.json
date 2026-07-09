@@ -32,6 +32,14 @@
     {
       "key": "dupOrderId",
       "value": ""
+    },
+    {
+      "key": "bpiAuxNo",
+      "value": "1373091015-1-0"
+    },
+    {
+      "key": "bpiProductItem",
+      "value": ""
     }
   ],
   "item": [
@@ -1258,6 +1266,268 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"code==148 (order does not exist)\", function(){ pm.expect(pm.response.json().code).to.eql(148); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BPI \u2014 Post-issuance baggage (search -> order -> orderDetail)",
+      "item": [
+        {
+          "name": "BPI-1 \u2014 Search (/postBaggage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/postBaggage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "postBaggage"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"segments\": [\n    {\n      \"carrier\": \"VJ\",\n      \"flightNumber\": \"VJ84\",\n      \"depAirport\": \"BNE\",\n      \"depTime\": \"202607312330\",\n      \"arrAirport\": \"SGN\",\n      \"arrTime\": \"202608010500\",\n      \"tripType\": 1,\n      \"segmentIndex\": 1,\n      \"id\": 0\n    }\n  ],\n  \"passenger\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Response depends only on segments; passenger is ignored. Captures the 70kg productItem for order."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"status 0 / success / auxiliaryOrderNo null\", function(){",
+                  "  pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
+                  "});",
+                  "pm.test(\"one product, 9 baggage tiers\", function(){",
+                  "  pm.expect(j.products).to.have.lengthOf(1);",
+                  "  pm.expect(j.products[0].productItems).to.have.lengthOf(9);",
+                  "});",
+                  "pm.test(\"segment enriched (cabin B, cabinGrade Y, tripType '1')\", function(){",
+                  "  var s = j.products[0].segment;",
+                  "  pm.expect(s.cabin).to.eql(\"B\"); pm.expect(s.cabinGrade).to.eql(\"Y\"); pm.expect(s.tripType).to.eql(\"1\");",
+                  "});",
+                  "pm.test(\"tiers ascending 20..100\", function(){",
+                  "  pm.expect(j.products[0].productItems.map(function(i){return i.baggage.baggageAllowance;}))",
+                  "    .to.eql([20,30,40,50,60,70,80,90,100]);",
+                  "});",
+                  "var tier = j.products[0].productItems.find(function(i){return i.baggage.baggageAllowance===70;});",
+                  "pm.test(\"70kg tier is 358.38\", function(){ pm.expect(tier.basePrice).to.eql(358.38); });",
+                  "pm.collectionVariables.set(\"bpiProductItem\", JSON.stringify(tier));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BPI-2 \u2014 Order (/orderCrossPostBaggage)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orderCrossPostBaggage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orderCrossPostBaggage"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\"passengerType\": \"ADT\", \"lastName\": \"TESTER\", \"firstName\": \"ALPHA\", \"pnrCode\": \"TEST01\"},\n      \"segmentProducts\": { \"segment\": {\"carrier\": \"VJ\", \"flightNumber\": \"VJ84\", \"depAirport\": \"BNE\", \"depTime\": \"202607312330\", \"arrAirport\": \"SGN\", \"arrTime\": \"202608010500\", \"tripType\": 1, \"segmentIndex\": 1, \"id\": 0}, \"productItem\": {{bpiProductItem}} }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Orders the 70kg productItem captured from search (round-trip; productItemId re-derived server-side)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); });",
+                  "pm.test(\"auxiliaryOrderNo echoed\", function(){",
+                  "  pm.expect(j.auxiliaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BPI-3 \u2014 OrderDetail (/ancillaryOrderDetail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ancillaryOrderDetail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ancillaryOrderDetail"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auxiliaryOrderNo\": \"{{bpiAuxNo}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); });",
+                  "var d = j.data;",
+                  "pm.test(\"orderStatus PURCHASED, currency USD, total 358.38\", function(){",
+                  "  pm.expect(d.orderStatus).to.eql(\"PURCHASED\");",
+                  "  pm.expect(d.currency).to.eql(\"USD\");",
+                  "  pm.expect(d.totalPrice).to.eql(358.38);",
+                  "});",
+                  "pm.test(\"ancillaryOrderNo echoed\", function(){",
+                  "  pm.expect(d.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
+                  "});",
+                  "pm.test(\"segment arrTime null; passenger linked by segmentId\", function(){",
+                  "  pm.expect(d.segments[0].arrTime).to.be.null;",
+                  "  pm.expect(d.passengerAncillaries[0].segmentId).to.eql(d.segments[0].id);",
+                  "  pm.expect(d.passengerAncillaries[0].passengerName).to.eql(\"TESTER/ALPHA\");",
+                  "  pm.expect(d.passengerAncillaries[0].baggageWeight).to.eql(\"70\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BPI-4 \u2014 Order invalid productItemId (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orderCrossPostBaggage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orderCrossPostBaggage"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ancillaryOrderNo\": \"BPI-NEG\",\n  \"orderNo\": \"BPI-NEG\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"TAMPERED/notarealid=\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Tampered productItemId fails re-derivation -> generic failure envelope."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"status 1, auxiliaryOrderNo null (generic failure)\", function(){",
+                  "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "BPI-5 \u2014 OrderDetail unknown order (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ancillaryOrderDetail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ancillaryOrderDetail"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auxiliaryOrderNo\": \"does-not-exist\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"status 1, order not found, data null\", function(){",
+                  "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.msg).to.eql(\"order not found\"); pm.expect(j.data).to.be.null;",
+                  "});"
                 ]
               }
             }

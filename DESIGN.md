@@ -9,6 +9,9 @@ so the Traveloka aggregator can be integration-tested without a real airline bac
 Contract source: `Traveloka-api-guideline/[Published]-Traveloka-API-Document-Integration-v3.md`
 and the `API sample/` request/response captures.
 
+> The TSY-native **Baggage Post-Issuance (BPI)** flow (`/postBaggage → /orderCrossPostBaggage →
+> `/ancillaryOrderDetail`) is a separate add-on documented in [`BPI_DESIGN.md`](./BPI_DESIGN.md).
+
 ---
 
 ## 1. Understanding summary
