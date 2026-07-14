@@ -102,6 +102,16 @@ echoed and the correct state transitions.
   - `code == 0`.
   - `data.amount == "251.50"`, `data.currency == "USD"`, `data.transactionId` non-empty.
 
+### Step 5b — Pay with wallet payType (ANTOM/YEEPAY variant)
+- **When:** `POST /flight/pay/v3` with `{ "orderId": orderId, "payType": "ANTOM", "accountNumber": "" }`
+  (or `"YEEPAY"`; case-insensitive).
+- **Then:**
+  - `code == 0`; issuance behavior identical to BPA (UNPAID→ISSUED, 13-digit tickets).
+  - `data.accountNumber` is the **receiver account** of the wallet-to-wallet transaction
+    (`21881200168224D1` for both gateways) even though the request `accountNumber` was empty;
+    any payer accountNumber sent in the request is ignored.
+  - Subsequent OrderDetail returns the same receiver account in `orderInfo.accountNumber`.
+
 ### Step 6 — OrderDetail (verify issuance)
 - **When:** `POST /flight/orderDetail/v3` with `{ "orderId": orderId }`.
 - **Then:**

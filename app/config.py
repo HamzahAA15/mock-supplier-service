@@ -8,6 +8,14 @@ SEAT_COUNT = 9
 CABIN = "Y"
 SEAT_CLASS = "Y"
 
+# Wallet-to-wallet pay types (PAY API adjustment wiki). For these payTypes the
+# request accountNumber is empty and the response accountNumber is the RECEIVER
+# account on the wallet-to-wallet transaction (fixed mock value per gateway).
+WALLET_RECEIVER_ACCOUNTS = {
+    "ANTOM": "21881200168224D1",
+    "YEEPAY": "21881200168224D1",
+}
+
 # Pax-type fare multipliers relative to the adult fare (mock rule).
 PAX_FARE_MULTIPLIER = {"ADT": 1.0, "CHD": 0.75, "INF": 0.10}
 

@@ -34,6 +34,46 @@ def test_ticket_number_13_digits_per_passenger(client):
     assert all(t.isdigit() and len(t) == 13 for t in tickets)
 
 
+def test_pay_antom_returns_receiver_wallet_account(client):
+    order_id = place_order(client)
+    res = client.post("/flight/pay/v3", json={"orderId": order_id, "payType": "ANTOM", "accountNumber": ""}).json()
+    assert res["code"] == 0
+    data = res["data"]
+    assert data["accountNumber"] == "21881200168224D1"  # receiver account, not payer's
+    assert data["amount"] == "107.00"
+    detail = client.post("/flight/orderDetail/v3", json={"orderId": order_id}).json()
+    assert detail["data"]["orderInfo"]["status"] == "ISSUED"
+    assert detail["data"]["orderInfo"]["accountNumber"] == "21881200168224D1"
+
+
+def test_pay_yeepay_returns_receiver_wallet_account(client):
+    order_id = place_order(client)
+    res = client.post("/flight/pay/v3", json={"orderId": order_id, "payType": "YEEPAY", "accountNumber": ""}).json()
+    assert res["code"] == 0
+    assert res["data"]["accountNumber"] == "21881200168224D1"
+
+
+def test_pay_wallet_type_case_insensitive(client):
+    order_id = place_order(client)
+    res = client.post("/flight/pay/v3", json={"orderId": order_id, "payType": "antom"}).json()
+    assert res["code"] == 0
+    assert res["data"]["accountNumber"] == "21881200168224D1"
+
+
+def test_pay_wallet_ignores_payer_account_number(client):
+    order_id = place_order(client)
+    res = client.post("/flight/pay/v3", json={"orderId": order_id, "payType": "YEEPAY", "accountNumber": "PAYER_WALLET_123"}).json()
+    assert res["code"] == 0
+    assert res["data"]["accountNumber"] == "21881200168224D1"
+
+
+def test_pay_bpa_echoes_request_account_number(client):
+    order_id = place_order(client)
+    res = client.post("/flight/pay/v3", json={"orderId": order_id, "payType": "BPA", "accountNumber": "TVLK_ACC"}).json()
+    assert res["code"] == 0
+    assert res["data"]["accountNumber"] == "TVLK_ACC"
+
+
 def test_duplicate_payment_748(client):
     order_id = place_order(client)
     assert client.post("/flight/pay/v3", json={"orderId": order_id}).json()["code"] == 0

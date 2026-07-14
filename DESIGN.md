@@ -214,11 +214,17 @@ All paths are `POST`. Success = `code: 0, msg: "success"` unless noted.
   `flights[]`, `segments[]`.
 
 ### 7.6 `POST /flight/pay/v3`
-- **Req:** `orderId`, `payType?` (default `BPA`), `accountNumber?`.
+- **Req:** `orderId`, `payType?` (default `BPA`; also `ANTOM`/`YEEPAY`, case-insensitive), `accountNumber?`.
 - **Validation:** empty orderId → 745; order not found → 148; already paid → 748.
 - **Behavior:** set status `ISSUED`, `payTime = now`, generate a **13-digit ticketNumber per passenger**.
   Order `expiredTime` is informational only — expiry is **not enforced** at pay (confirmed 2026-07-05).
 - **Success `data`:** `{ "transactionId": "<id>", "amount": "<total>", "currency": "USD", "accountNumber": "" }`.
+- **ANTOM/YEEPAY (wallet-to-wallet, per "PAY API adjustment" wiki):** request `accountNumber` is expected
+  empty and is ignored; the response `accountNumber` is the **receiver account** on the wallet-to-wallet
+  transaction (fixed mock `21881200168224D1` for both gateways, see `config.WALLET_RECEIVER_ACCOUNTS`).
+  The same receiver account is persisted on the order and echoed by OrderDetail. For `BPA` the request
+  `accountNumber` is echoed as before. The mocked gateway response is produced by
+  `app/services/payments.py` (`charge()` / `settlement_account()`), which the router delegates to.
 
 ### 7.7 `POST /flight/orderDetail/v3`
 - **Req:** `{ "orderId": "..." }`.

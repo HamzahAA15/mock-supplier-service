@@ -430,6 +430,57 @@
           ]
         },
         {
+          "name": "Step 5b \u2014 Pay (ANTOM wallet-to-wallet, expects 748 if Step 5 ran)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/flight/pay/v3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "flight",
+                "pay",
+                "v3"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"payType\": \"ANTOM\",\n  \"accountNumber\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"wallet pay: receiver account or 748 duplicate\", function(){",
+                  "  if (j.code === 0) {",
+                  "    pm.expect(j.data.accountNumber).to.eql(\"21881200168224D1\");",
+                  "  } else {",
+                  "    pm.expect(j.code).to.eql(748);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Step 6 \u2014 OrderDetail (verify issuance)",
           "request": {
             "method": "POST",

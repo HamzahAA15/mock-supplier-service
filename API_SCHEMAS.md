@@ -372,6 +372,30 @@ of adult per §4) plus any ancillaries.
 ```
 Errors: `745` orderId empty, `148` order does not exist, `748` duplicate payment.
 
+**Wallet-to-wallet payTypes — `ANTOM` / `YEEPAY`** (per "PAY API adjustment" wiki)
+
+**Request** — `accountNumber` is sent empty (ignored if provided):
+```json
+{ "orderId": "4820137655", "payType": "ANTOM", "accountNumber": "" }
+```
+
+**Success response** — `accountNumber` is the **receiver account** on the wallet-to-wallet transaction,
+not the payer's. Fixed mock value for both gateways: `21881200168224D1`.
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "transactionId": "TXN9182734650",
+    "amount": "144.50",
+    "currency": "USD",
+    "accountNumber": "21881200168224D1"
+  }
+}
+```
+`payType` matching is case-insensitive; order transition and ticketing are identical to `BPA`.
+OrderDetail subsequently returns the same receiver account in `orderInfo.accountNumber`.
+
 ---
 
 ## 7. `POST /flight/orderDetail/v3`
