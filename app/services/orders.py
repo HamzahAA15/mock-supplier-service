@@ -53,6 +53,7 @@ class OrderStore:
             "updateTime": fmt(now),
             "expiredTime": fmt(now + timedelta(minutes=config.ORDER_EXPIRE_IN_MINUTES)),
             "payTime": "",
+            "payType": "",
             "accountNumber": "",
             "ticketNumbers": {},  # passenger index -> 13-digit ticket, minted at pay
         }
@@ -62,11 +63,12 @@ class OrderStore:
     def get(self, order_id: str) -> Optional[dict]:
         return self._orders.get(order_id)
 
-    def pay(self, order: dict, account_number: str) -> dict:
+    def pay(self, order: dict, account_number: str, pay_type: str = "BPA") -> dict:
         now = fmt(datetime.now())
         order["status"] = "ISSUED"
         order["payTime"] = now
         order["updateTime"] = now
+        order["payType"] = pay_type or "BPA"
         order["accountNumber"] = account_number or ""
         order["ticketNumbers"] = {i: new_ticket_number() for i in range(len(order["passengers"]))}
         return order

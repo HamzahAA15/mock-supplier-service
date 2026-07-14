@@ -103,6 +103,11 @@ curl -s $BASE/flight/order/v3 -H 'Content-Type: application/json' -d '{
 curl -s $BASE/flight/pay/v3 -H 'Content-Type: application/json' \
   -d '{"orderId":"<orderId>","payType":"BPA","accountNumber":""}'
 
+# 6b. pay via wallet-to-wallet (ANTOM or YEEPAY): request accountNumber is empty;
+#     response accountNumber is the RECEIVER wallet account (21881200168224D1)
+curl -s $BASE/flight/pay/v3 -H 'Content-Type: application/json' \
+  -d '{"orderId":"<orderId>","payType":"ANTOM","accountNumber":""}'
+
 # 7. order detail
 curl -s $BASE/flight/orderDetail/v3 -H 'Content-Type: application/json' \
   -d '{"orderId":"<orderId>"}'

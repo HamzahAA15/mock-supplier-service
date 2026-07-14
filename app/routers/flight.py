@@ -11,9 +11,9 @@ from app.models.pay import PayRequest
 from app.models.search import SearchRequest
 from app.models.verify import VerifyRequest
 from app.services import ancillary as ancillary_svc
-from app.services import codes, inventory
+from app.services import codes, inventory, payments
 from app.services.offer_key import decode_ancillary_key, decode_offer_key
-from app.services.orders import new_transaction_id, store
+from app.services.orders import store
 
 router = APIRouter(prefix="/flight")
 
@@ -180,13 +180,12 @@ def pay(req: PayRequest):
         return codes.error(codes.ORDER_NOT_FOUND)
     if stored["status"] != "UNPAID":
         return codes.error(codes.DUPLICATE_PAYMENT)
-    store.pay(stored, req.account_number)
-    return codes.success({
-        "transactionId": new_transaction_id(),
-        "amount": "{:.2f}".format(stored["total"]),
-        "currency": config.CURRENCY,
-        "accountNumber": stored["accountNumber"],
-    })
+    # Mocked gateway response ("PAY API adjustment" wiki): for ANTOM/YEEPAY the
+    # accountNumber is the RECEIVER account of the wallet-to-wallet transaction;
+    # for BPA it echoes the payer account from the request.
+    receipt = payments.charge(stored, req.pay_type, req.account_number)
+    store.pay(stored, receipt["accountNumber"], payments.normalize_pay_type(req.pay_type))
+    return codes.success(receipt)
 
 
 @router.post("/orderDetail/v3")
