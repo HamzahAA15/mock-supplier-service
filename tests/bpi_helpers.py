@@ -86,3 +86,11 @@ def post_encrypted_order(client, body_dict):
     ciphertext = encrypt_order_body(body_dict)
     return client.post("/orderCrossSecondBaggage", content=ciphertext,
                        headers={"Content-Type": "text/plain"})
+
+
+def decrypt_order_response(res):
+    """Decrypt an encrypted order response body back to a dict (symmetric channel)."""
+    import json
+
+    from app.services.crypto import decrypt_aes_cbc
+    return json.loads(decrypt_aes_cbc(res.text))

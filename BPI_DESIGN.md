@@ -36,15 +36,19 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
     baggage not available for route <dep>-<arr>"}` — the order is not created. (Deliberate exception
     to the HTTP-200 rule in §7, per product requirement.) Search is unaffected. Constant lives in
     `app/services/bpi_catalog.py::BLOCKED_SECOND_BAGGAGE_ROUTES`.
-12. **Encrypted order body (order only):** the client encrypts the `/orderCrossSecondBaggage`
-    request body with **AES/CBC/PKCS5Padding** and **standard base64**; the whole HTTP body is that
-    base64 string. Key = `B@4p6aay&)*^M0^r` (16 bytes, AES-128), **IV = the key bytes**
-    (`IvParameterSpec(key.getBytes())`). The server decrypts, then parses JSON. **Accept-both:** if
-    decryption fails, the body is treated as plaintext JSON (keeps tests / manual curl working);
-    unparseable → `{"auxiliaryOrderNo": null, "status": "1", "msg": "invalid request body"}`. Only
-    this endpoint is encrypted; search/orderDetail and the response bodies stay plaintext. Logic in
-    `app/services/crypto.py` (key overridable via `SECOND_BAGGAGE_AES_KEY`). Known-answer vector for
-    Java cross-check: `encrypt("hello world") == "b4veAzBq4t5O8dJ+h1Q21Q=="`.
+12. **Encrypted order body + response (order only):** the client encrypts the
+    `/orderCrossSecondBaggage` request body with **AES/CBC/PKCS5Padding** and **standard base64**;
+    the whole HTTP body is that base64 string. Key = `B@4p6aay&)*^M0^r` (16 bytes, AES-128),
+    **IV = the key bytes** (`IvParameterSpec(key.getBytes())`). The server decrypts, then parses JSON.
+    **Accept-both:** if decryption fails, the body is treated as plaintext JSON (keeps tests / manual
+    curl working); unparseable → `{"auxiliaryOrderNo": null, "status": "1", "msg": "invalid request body"}`.
+    **Symmetric response:** when the request was encrypted, the **response body is encrypted too**
+    (same key/IV/mode, base64 string, `Content-Type: text/plain`) — for **all** outcomes: success,
+    business-failure envelopes (`status "1"`), and the blocked-route **HTTP 500**. A plaintext request
+    gets a plaintext JSON response. Only this endpoint is encrypted; `/secondBaggage` and
+    `/ancillaryOrderDetail` stay plaintext. Logic in `app/services/crypto.py` (key overridable via
+    `SECOND_BAGGAGE_AES_KEY`). Known-answer vector for Java cross-check:
+    `encrypt("hello world") == "b4veAzBq4t5O8dJ+h1Q21Q=="`.
 8. **Auth:** none, same as existing v1 endpoints.
 9. **Search passengers:** the `passenger` array may be missing, empty, or have empty-string
    fields; search ignores it entirely — the response depends only on `segments`.
