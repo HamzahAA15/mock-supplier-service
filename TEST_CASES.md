@@ -200,8 +200,8 @@ echoed and the correct state transitions.
 ## Second Baggage — TSY BPI (tsy-bpi contract)
 
 > **Variant: TSY BPI.** These cases cover the **TSY BPI** version (`tsy-bpi`) — paths
-> `/secondBaggage`, `/orderCrossSecondBaggage`, `/ancillaryOrderDetail`. A second BPI version
-> (`standardizedv3-bpi`) is planned separately and will get its own test-case section.
+> `/secondBaggage`, `/orderCrossSecondBaggage`, `/ancillaryOrderDetail`. The second BPI version
+> (**Standardized BPI**) has its own section below.
 
 Separate flow from the flight chain above: `search → order → orderDetail`, **no pay step**
 (a successful order is already paid). Envelope is `status: "0"` (string) / `msg: "success"`.
@@ -242,3 +242,61 @@ Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: 
 | Plaintext fallback | Order with plaintext JSON body | still `status "0"` (accept-both) |
 | Unparseable body | Order with a body that is neither valid AES nor JSON | `{auxiliaryOrderNo: null, status: "1", msg: "invalid request body"}` |
 | Unknown order | OrderDetail with unknown `auxiliaryOrderNo` (incl. after restart) | `{status: "1", msg: "order not found", data: null}` |
+
+---
+
+## Standardized BPI (Standardized Ancillary Post-Issuance contract)
+
+> **Variant: Standardized BPI.** Same second-baggage behaviour as TSY BPI, different contract —
+> paths `POST /ancillary/v1/baggage/search`, `POST /ancillary/v1/orders`,
+> `GET /ancillary/v1/orders/{ancillaryOrderNo}`. Contract source: PRD "Standardized 3PS Baggage
+> Post Issuance Automation" §V. Design: [`STANDARDIZED_BPI_DESIGN.md`](./STANDARDIZED_BPI_DESIGN.md).
+
+Envelope is `{code: int, msg, data}`, always HTTP 200 (errors are envelope codes, not HTTP errors).
+Plain JSON body; `Authorization` header accepted but never validated. No pay step: order RS returns
+`ISSUING`, orderDetail always returns `ISSUED` (Traveloka polls until status change).
+Fixture: segment `AK AK342 CGK→BKI` (future `yyyy-MM-dd HH:mm:ss` datetimes), synthetic pax
+`TESTER/ALPHA` (`passengerId 1`, `pnr TEST01`).
+
+### TC-SBPI-01 — Full chain
+
+1. **Search** `POST /ancillary/v1/baggage/search` with `ancillaryType: "CHECKEDBAGGAGE"`,
+   `routes[].segments[]`, `passengers[]`. Then:
+   - `code == 0`, `msg == "Success"`, `data.currency == "USD"`.
+   - one `data.routes[]` per RQ route; RQ segments echoed verbatim.
+   - passengers present → `passengerOffers[]` (one per pax, `passengerId` echoed), each with
+     **9** `ancillaryOffers` (`ancillaryCode` `[20,30,40,50,60,70,80,90,100]` kg, prices
+     `52.14…536.74` — same shared tiers as TSY BPI), `ancillaryType CHECKEDBAGGAGE`,
+     `ancillaryPiece 1`, `unitOfMeasurement WEIGHT`.
+   - `ancillaryKey` is opaque, self-describing (base64url; encodes tripType + segments + weight),
+     unique per (route, tier), identical across passengers. Capture the 20kg key.
+2. **Order** `POST /ancillary/v1/orders` with client-generated `ancillaryOrderNo`, `isCross`,
+   `passengers[]`, `selectedAncillary[] = {passengerId, ancillaryKey}`. Then:
+   - `code == 0`, `data.ancillaryOrderNo` **echoed**, `data.orderStatus == "ISSUING"`.
+   - `data.total` = Σ tier prices; `createdTime`/`updatedTime` in `yyyy-MM-dd HH:mm:ss`.
+   - each `selectedAncillary[]` item carries `ancillaryType/ancillaryCode/ancillaryPiece/price`
+     and `segments[]` **reconstructed from the decoded ancillaryKey** (order RQ has no segments).
+3. **OrderDetail** `GET /ancillary/v1/orders/{ancillaryOrderNo}`. Then:
+   - `code == 0`, `data.orderStatus == "ISSUED"` (always, immediately; repeatable across polls).
+   - items additionally carry `unitOfMeasurement: "WEIGHT"`; `total`/`passengers` consistent
+     with the order RS.
+
+### Standardized BPI variations & negatives
+
+| Case | Request | Expected |
+|---|---|---|
+| Pre-issuance live fetch | Search **without** `passengers` | `generalOffers[]` instead of `passengerOffers[]`; same 9 tiers; keys still orderable later |
+| Multi-route / multi-pax | Search 2 routes × 2 pax; order different tiers per pax | keys differ per route; `total` = Σ prices; 2 `selectedAncillary[]` items |
+| Multi-segment route | Search a 2-segment route | one key per (route, tier); decoded key reconstructs **all** segments |
+| Idempotent re-order | Order same `ancillaryOrderNo` twice (different tier) | both `code 0`; latest wins in orderDetail |
+| Unsupported ancillaryType | Search with `ancillaryType: "SEAT"` | `code 555`, `data null` |
+| Empty routes | Search with `routes: []` | `code 555`, `data null` |
+| **Blocked route** | Search or order-key for `SIN→KUL` / `SIN→CGK` | `code 555`, `data null` (HTTP 200 — unlike TSY's HTTP 500) |
+| Allowed reverse route | Search `KUL→SIN` | `code 0` (blocklist is directional) |
+| **Past departure** | Search a segment with past `departureTime` | `code 5001` "prohibition of sale before or after departure" |
+| Invalid ancillaryKey | Order with forged/tampered key, or non-tier weight | `code 400` "invalid ancillaryKey"; order not created |
+| Unknown passengerId | Order item referencing a pax not in `passengers[]` | `code 400` |
+| Missing ancillaryOrderNo | Order without `ancillaryOrderNo` | `code 400` "invalid ancillary order number" |
+| Empty selectedAncillary | Order with `selectedAncillary: []` | `code 400` |
+| Unknown order | OrderDetail GET with unknown order no (incl. after restart) | `code 400`, `data null` |
+| Version coexistence | TSY and Standardized endpoints in the same run | both respond per their own envelope (`status "0"` vs `code 0`) |

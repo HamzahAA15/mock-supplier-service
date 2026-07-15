@@ -1,1694 +1,2074 @@
 {
-  "info": {
-    "name": "Mock Supplier Service \u2014 TEST_CASES.md",
-    "description": "Live API coverage of TEST_CASES.md (TC-E2E-01 + V1/V2/V3/V4 + negative assertions) for the mock Traveloka flight supplier.\n\nSet {{baseUrl}} (default http://127.0.0.1:8000). Run the whole collection with the Postman Collection Runner, or run folders top-to-bottom (each folder that needs an offerKey either captures its own or reuses TC-E2E-01 Step 1).\n\nKNOWN DIVERGENCE: TEST_CASES.md Step 3 / Open item (b) expects the ancillaryKey prefix '2_0_0' (adt_chd_inf). The service emits the cosmetic '1_0_0' because the stateless offerKey carries no passenger counts. The chain still resolves; see the Step 3 note.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ "info": {
+  "name": "Mock Supplier Service — TEST_CASES.md",
+  "description": "Live API coverage of TEST_CASES.md (TC-E2E-01 + V1/V2/V3/V4 + negative assertions) for the mock Traveloka flight supplier.\n\nSet {{baseUrl}} (default http://127.0.0.1:8000). Run the whole collection with the Postman Collection Runner, or run folders top-to-bottom (each folder that needs an offerKey either captures its own or reuses TC-E2E-01 Step 1).\n\nKNOWN DIVERGENCE: TEST_CASES.md Step 3 / Open item (b) expects the ancillaryKey prefix '2_0_0' (adt_chd_inf). The service emits the cosmetic '1_0_0' because the stateless offerKey carries no passenger counts. The chain still resolves; see the Step 3 note.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "variable": [
+  {
+   "key": "baseUrl",
+   "value": "http://127.0.0.1:8000"
   },
-  "variable": [
+  {
+   "key": "accessToken",
+   "value": ""
+  },
+  {
+   "key": "gaOfferKey",
+   "value": ""
+  },
+  {
+   "key": "jtOfferKey",
+   "value": ""
+  },
+  {
+   "key": "bag25Key",
+   "value": ""
+  },
+  {
+   "key": "orderId",
+   "value": ""
+  },
+  {
+   "key": "dupOrderId",
+   "value": ""
+  },
+  {
+   "key": "bpiAuxNo",
+   "value": "1373091015-1-0"
+  },
+  {
+   "key": "sbpiKey",
+   "value": ""
+  },
+  {
+   "key": "sbpiOrderNo",
+   "value": ""
+  }
+ ],
+ "item": [
+  {
+   "name": "TC-E2E-01 — Full happy path (search -> book -> issue)",
+   "item": [
     {
-      "key": "baseUrl",
-      "value": "http://127.0.0.1:8000"
-    },
-    {
-      "key": "accessToken",
-      "value": ""
-    },
-    {
-      "key": "gaOfferKey",
-      "value": ""
-    },
-    {
-      "key": "jtOfferKey",
-      "value": ""
-    },
-    {
-      "key": "bag25Key",
-      "value": ""
-    },
-    {
-      "key": "orderId",
-      "value": ""
-    },
-    {
-      "key": "dupOrderId",
-      "value": ""
-    },
-    {
-      "key": "bpiAuxNo",
-      "value": "1373091015-1-0"
-    }
-  ],
-  "item": [
-    {
-      "name": "TC-E2E-01 \u2014 Full happy path (search -> book -> issue)",
-      "item": [
-        {
-          "name": "Step 0 \u2014 Authorize (token)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/uaa/oauth/token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "uaa",
-                "oauth",
-                "token"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"grantType\": \"clientCredentials\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "v1 does not enforce the token; captured for realism only."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"HTTP 200\", function(){ pm.response.to.have.status(200); });",
-                  "pm.test(\"accessToken non-empty\", function(){ pm.expect(j.accessToken).to.be.a(\"string\").and.not.empty; });",
-                  "pm.test(\"tokenType == Bearer\", function(){ pm.expect(j.tokenType).to.eql(\"Bearer\"); });",
-                  "pm.test(\"expiresIn > 0\", function(){ pm.expect(j.expiresIn).to.be.above(0); });",
-                  "pm.test(\"scope has all 6 verbs\", function(){",
-                  "  [\"search\",\"preOrderVerify\",\"ancillarySearch\",\"order\",\"pay\",\"orderDetail\"].forEach(function(v){",
-                  "    pm.expect(j.scope).to.include(v);",
-                  "  });",
-                  "});",
-                  "pm.collectionVariables.set(\"accessToken\", j.accessToken);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 1 \u2014 Search (2 ADT, KNO->CGK)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Captures gaOfferKey and jtOfferKey for downstream steps."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
-                  "var d = j.data;",
-                  "var segCarrier = {};",
-                  "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
-                  "function offerFor(carrier){",
-                  "  return d.offers.find(function(o){",
-                  "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
-                  "    return segCarrier[sidx]===carrier;",
-                  "  });",
-                  "}",
-                  "function fbaFor(carrier){",
-                  "  var o = offerFor(carrier);",
-                  "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
-                  "}",
-                  "",
-                  "pm.test(\"currency == USD\", function(){ pm.expect(d.currency).to.eql(\"USD\"); });",
-                  "pm.test(\"exactly 3 offers\", function(){ pm.expect(d.offers).to.have.lengthOf(3); });",
-                  "pm.test(\"carriers == {JT,GA,QZ}\", function(){",
-                  "  var set = d.segments.map(function(s){return s.marketingCarrier;}).sort();",
-                  "  pm.expect(set).to.eql([\"GA\",\"JT\",\"QZ\"]);",
-                  "});",
-                  "pm.test(\"route/date echoed on every segment (req#1,#2)\", function(){",
-                  "  d.segments.forEach(function(s){",
-                  "    pm.expect(s.depAirport).to.eql(\"KNO\");",
-                  "    pm.expect(s.arrAirport).to.eql(\"CGK\");",
-                  "    pm.expect(s.depTime).to.match(/^2026-09-20/);",
-                  "    pm.expect(s.arrTime).to.match(/^2026-09-20/);",
-                  "  });",
-                  "});",
-                  "pm.test(\"FBA JT==0, QZ==0, GA==20 (req#8)\", function(){",
-                  "  pm.expect(fbaFor(\"JT\")).to.eql(0);",
-                  "  pm.expect(fbaFor(\"QZ\")).to.eql(0);",
-                  "  pm.expect(fbaFor(\"GA\")).to.eql(20);",
-                  "});",
-                  "pm.test(\"every offer product==[BASIC] & offerKey non-empty (req#4)\", function(){",
-                  "  d.offers.forEach(function(o){ pm.expect(o.product).to.eql([\"BASIC\"]); pm.expect(o.offerKey).to.not.be.empty; });",
-                  "});",
-                  "var ga = offerFor(\"GA\");",
-                  "var ch = {}; ga.charges.forEach(function(c){ ch[c.passengerType+\"/\"+c.chargeType]=c.price; });",
-                  "pm.test(\"GA ADT/FARE==95 & ADT/TAX==12\", function(){",
-                  "  pm.expect(ch[\"ADT/FARE\"]).to.eql(95.0); pm.expect(ch[\"ADT/TAX\"]).to.eql(12.0);",
-                  "});",
-                  "pm.collectionVariables.set(\"gaOfferKey\", ga.offerKey);",
-                  "pm.collectionVariables.set(\"jtOfferKey\", offerFor(\"JT\").offerKey);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 2 \u2014 PreOrderVerify",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/preOrderVerify/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "preOrderVerify",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "var d = j.data;",
-                  "pm.test(\"exactly 1 offer\", function(){ pm.expect(d.offers).to.have.lengthOf(1); });",
-                  "pm.test(\"offerKey identity (req#5)\", function(){",
-                  "  pm.expect(d.offers[0].offerKey).to.eql(pm.collectionVariables.get(\"gaOfferKey\"));",
-                  "});",
-                  "pm.test(\"segment still KNO->CGK on 2026-09-20\", function(){",
-                  "  pm.expect(d.segments[0].depAirport).to.eql(\"KNO\");",
-                  "  pm.expect(d.segments[0].arrAirport).to.eql(\"CGK\");",
-                  "  pm.expect(d.segments[0].depTime).to.match(/^2026-09-20/);",
-                  "});",
-                  "// V3 \u2014 decode the offerKey (base64url) and assert its payload.",
-                  "pm.test(\"V3 offerKey decodes to GA|KNO|CGK|2026-09-20|BASIC\", function(){",
-                  "  var k = pm.collectionVariables.get(\"gaOfferKey\").replace(/-/g,\"+\").replace(/_/g,\"/\");",
-                  "  var decoded = Buffer.from(k, \"base64\").toString(\"utf8\");",
-                  "  pm.expect(decoded).to.eql(\"GA|KNO|CGK|2026-09-20|BASIC\");",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 3 \u2014 AncillarySearch",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/ancillary/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "ancillary",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "TEST_CASES.md Step 3 expects bag25Key '2_0_0$GA200$PA25' (Open item b). The service emits '1_0_0$GA200$PA25' because the offerKey is stateless and carries no passenger counts; the prefix is cosmetic. The chain still resolves."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "var offers = j.data.ancillaryOffers;",
-                  "pm.test(\"exactly 3 CHECKEDBAGGAGE options\", function(){ pm.expect(offers).to.have.lengthOf(3); });",
-                  "pm.test(\"ancillaryCode == [25,30,35] (req#9, +5 above GA FBA 20)\", function(){",
-                  "  pm.expect(offers.map(function(o){return o.ancillaryCode;})).to.eql([25,30,35]);",
-                  "});",
-                  "pm.test(\"each option WEIGHT / GA200 / KNO->CGK\", function(){",
-                  "  offers.forEach(function(o){",
-                  "    pm.expect(o.unitOfMeasurement).to.eql(\"WEIGHT\");",
-                  "    pm.expect(o.flightNumber).to.eql(\"GA200\");",
-                  "    pm.expect(o.oriAirport).to.eql(\"KNO\");",
-                  "    pm.expect(o.destAirport).to.eql(\"CGK\");",
-                  "  });",
-                  "});",
-                  "var bag25 = offers.find(function(o){return o.ancillaryCode===25;}).ancillaryKey;",
-                  "// TEST_CASES.md Open item (b) expects prefix '2_0_0' (adt_chd_inf). The stateless",
-                  "// offerKey carries no pax counts, so the service emits the cosmetic '1_0_0' prefix.",
-                  "// We assert the stable suffix and capture whatever the service emits for downstream use.",
-                  "pm.test(\"bag25 key ends with $GA200$PA25\", function(){ pm.expect(bag25).to.match(/\\$GA200\\$PA25$/); });",
-                  "pm.test(\"NOTE bag25 prefix (doc expects 2_0_0, service emits 1_0_0)\", function(){",
-                  "  pm.expect(bag25.split(\"$\")[0]).to.eql(\"1_0_0\");",
-                  "});",
-                  "pm.collectionVariables.set(\"bag25Key\", bag25);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 4 \u2014 Order (booking, 2 ADT + 25kg bag)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/order/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "order",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"ancillaryKeyLists\": [\n    {\n      \"passengerIndex\": 0,\n      \"ancillaryKeys\": [\n        \"{{bag25Key}}\"\n      ]\n    }\n  ],\n  \"passengers\": [\n    {\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"M\",\n      \"birthDay\": \"1990-01-15\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"SITI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"F\",\n      \"birthDay\": \"1992-03-20\",\n      \"nationality\": \"ID\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"email\": \"agent@example.com\",\n      \"phone\": \"+62-8110000000\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "var d = j.data;",
-                  "pm.test(\"orderId is 10 digits (req#6)\", function(){ pm.expect(d.orderId).to.match(/^\\d{10}$/); });",
-                  "pm.test(\"expireInMinutes==30\", function(){ pm.expect(d.expireInMinutes).to.eql(30); });",
-                  "pm.test(\"product==[BASIC] & currency==USD\", function(){",
-                  "  pm.expect(d.product).to.eql([\"BASIC\"]); pm.expect(d.currency).to.eql(\"USD\");",
-                  "});",
-                  "pm.test(\"addedAncillary: pax0, code 25, price 37.50\", function(){",
-                  "  pm.expect(d.addedAncillary).to.have.lengthOf(1);",
-                  "  pm.expect(d.addedAncillary[0].passengerIndex).to.eql(0);",
-                  "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].ancillaryCode).to.eql(25);",
-                  "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].price).to.eql(37.5);",
-                  "});",
-                  "pm.test(\"total == 251.50 (2*(95+12) + 37.50)\", function(){ pm.expect(d.total).to.eql(251.5); });",
-                  "pm.collectionVariables.set(\"orderId\", d.orderId);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 5 \u2014 Pay (issuance)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/pay/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "pay",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"payType\": \"BPA\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "pm.test(\"amount=='251.50', currency USD, txn non-empty\", function(){",
-                  "  pm.expect(j.data.amount).to.eql(\"251.50\");",
-                  "  pm.expect(j.data.currency).to.eql(\"USD\");",
-                  "  pm.expect(j.data.transactionId).to.not.be.empty;",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 5b \u2014 Pay (ANTOM wallet-to-wallet, expects 748 if Step 5 ran)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/pay/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "pay",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"payType\": \"ANTOM\",\n  \"accountNumber\": \"\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"wallet pay: receiver account or 748 duplicate\", function(){",
-                  "  if (j.code === 0) {",
-                  "    pm.expect(j.data.accountNumber).to.eql(\"21881200168224D1\");",
-                  "  } else {",
-                  "    pm.expect(j.code).to.eql(748);",
-                  "  }",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Step 6 \u2014 OrderDetail (verify issuance)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/orderDetail/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "orderDetail",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "var d = j.data;",
-                  "pm.test(\"status ISSUED, payTime set, amount 251.50, product BASIC\", function(){",
-                  "  pm.expect(d.orderInfo.status).to.eql(\"ISSUED\");",
-                  "  pm.expect(d.orderInfo.payTime).to.not.be.empty;",
-                  "  pm.expect(d.orderInfo.amount).to.eql(\"251.50\");",
-                  "  pm.expect(d.orderInfo.product).to.eql([\"BASIC\"]);",
-                  "});",
-                  "pm.test(\"pnr 6-alnum & email echoed\", function(){",
-                  "  pm.expect(d.pnrs[0].pnr).to.match(/^[A-Z0-9]{6}$/);",
-                  "  pm.expect(d.pnrs[0].email).to.eql(\"agent@example.com\");",
-                  "});",
-                  "pm.test(\"2 tickets, each 13 digits\", function(){",
-                  "  var t = d.pnrs[0].passengers.map(function(p){return p.ticketNumber;});",
-                  "  pm.expect(t).to.have.lengthOf(2);",
-                  "  t.forEach(function(x){ pm.expect(x).to.match(/^\\d{13}$/); });",
-                  "});",
-                  "pm.test(\"passengerList echoed verbatim (req#7)\", function(){",
-                  "  pm.expect(d.passengerList).to.eql([{\"firstName\": \"BUDI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"M\", \"birthDay\": \"1990-01-15\", \"nationality\": \"ID\"}, {\"firstName\": \"SITI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"F\", \"birthDay\": \"1992-03-20\", \"nationality\": \"ID\"}]);",
-                  "});",
-                  "pm.test(\"segments KNO->CGK GA200 end-to-end\", function(){",
-                  "  d.segments.forEach(function(s){",
-                  "    pm.expect(s.depAirport).to.eql(\"KNO\"); pm.expect(s.arrAirport).to.eql(\"CGK\");",
-                  "    pm.expect(s.flightNumber).to.eql(\"GA200\");",
-                  "  });",
-                  "});",
-                  "pm.test(\"ancillaryList 25kg tied to SANTOSO/BUDI\", function(){",
-                  "  pm.expect(d.ancillaryList).to.have.lengthOf(1);",
-                  "  pm.expect(d.ancillaryList[0].ancillaryCode).to.eql(25);",
-                  "  pm.expect(d.ancillaryList[0].passengerName).to.eql(\"SANTOSO/BUDI\");",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "V1 \u2014 Multi-passenger echo (3 pax)",
-      "item": [
-        {
-          "name": "V1.1 \u2014 Search (self-contained)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
-                  "var d = j.data;",
-                  "var segCarrier = {};",
-                  "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
-                  "function offerFor(carrier){",
-                  "  return d.offers.find(function(o){",
-                  "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
-                  "    return segCarrier[sidx]===carrier;",
-                  "  });",
-                  "}",
-                  "function fbaFor(carrier){",
-                  "  var o = offerFor(carrier);",
-                  "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
-                  "}",
-                  "",
-                  "pm.collectionVariables.set(\"gaOfferKey\", offerFor(\"GA\").offerKey);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "V1.2 \u2014 Order (3 passengers: 2 ADT + 1 CHD)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/order/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "order",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"M\",\n      \"birthDay\": \"1990-01-15\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"SITI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"F\",\n      \"birthDay\": \"1992-03-20\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"AGUS\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"CHD\",\n      \"sex\": \"M\",\n      \"birthDay\": \"2018-07-01\",\n      \"nationality\": \"ID\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"email\": \"agent@example.com\",\n      \"phone\": \"+62-8110000000\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Child fare/tax multiplier = 75% (Open item a: multiplier applies to TAX as well)."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "pm.test(\"total==294.25 (2*(95+12)+(71.25+9.0); child=75% of fare & tax)\", function(){",
-                  "  pm.expect(j.data.total).to.eql(294.25);",
-                  "});",
-                  "pm.collectionVariables.set(\"orderId\", j.data.orderId);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "V1.3 \u2014 Pay",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/pay/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "pay",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==0\", function(){ pm.expect(pm.response.json().code).to.eql(0); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "V1.4 \u2014 OrderDetail (3-pax echo)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/orderDetail/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "orderDetail",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var d = pm.response.json().data;",
-                  "pm.test(\"passengerList length 3, verbatim (req#7)\", function(){",
-                  "  pm.expect(d.passengerList).to.eql([{\"firstName\": \"BUDI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"M\", \"birthDay\": \"1990-01-15\", \"nationality\": \"ID\"}, {\"firstName\": \"SITI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"F\", \"birthDay\": \"1992-03-20\", \"nationality\": \"ID\"}, {\"firstName\": \"AGUS\", \"lastName\": \"SANTOSO\", \"passengerType\": \"CHD\", \"sex\": \"M\", \"birthDay\": \"2018-07-01\", \"nationality\": \"ID\"}]);",
-                  "});",
-                  "pm.test(\"pnr names in order BUDI/SITI/AGUS\", function(){",
-                  "  pm.expect(d.pnrs[0].passengers.map(function(p){return p.passenger;}))",
-                  "    .to.eql([\"SANTOSO/BUDI\",\"SANTOSO/SITI\",\"SANTOSO/AGUS\"]);",
-                  "});",
-                  "pm.test(\"3 tickets, each 13 digits\", function(){",
-                  "  d.pnrs[0].passengers.forEach(function(p){ pm.expect(p.ticketNumber).to.match(/^\\d{13}$/); });",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "V2 \u2014 All-airline inventory + filter",
-      "item": [
-        {
-          "name": "V2.1 \u2014 Search without airlineIds",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
-                  "var d = j.data;",
-                  "var segCarrier = {};",
-                  "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
-                  "function offerFor(carrier){",
-                  "  return d.offers.find(function(o){",
-                  "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
-                  "    return segCarrier[sidx]===carrier;",
-                  "  });",
-                  "}",
-                  "function fbaFor(carrier){",
-                  "  var o = offerFor(carrier);",
-                  "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
-                  "}",
-                  "",
-                  "pm.test(\"all 6 airlines returned {AK,GA,JL,JT,QZ,SQ}\", function(){",
-                  "  pm.expect(d.segments.map(function(s){return s.marketingCarrier;}).sort())",
-                  "    .to.eql([\"AK\",\"GA\",\"JL\",\"JT\",\"QZ\",\"SQ\"]);",
-                  "});",
-                  "pm.test(\"FBA per airline: JT/QZ/AK 0, GA/SQ 20, JL 15\", function(){",
-                  "  pm.expect(fbaFor(\"JT\")).to.eql(0); pm.expect(fbaFor(\"QZ\")).to.eql(0); pm.expect(fbaFor(\"AK\")).to.eql(0);",
-                  "  pm.expect(fbaFor(\"GA\")).to.eql(20); pm.expect(fbaFor(\"SQ\")).to.eql(20);",
-                  "  pm.expect(fbaFor(\"JL\")).to.eql(15);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "V2.2 \u2014 Search airlineIds=[GA]",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"GA\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var d = pm.response.json().data;",
-                  "pm.test(\"exactly 1 offer (GA)\", function(){",
-                  "  pm.expect(d.offers).to.have.lengthOf(1);",
-                  "  pm.expect(d.segments[0].marketingCarrier).to.eql(\"GA\");",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "V4 \u2014 JT baggage ladder (FBA 0)",
-      "item": [
-        {
-          "name": "V4.1 \u2014 Search (capture JT offerKey)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
-                  "var d = j.data;",
-                  "var segCarrier = {};",
-                  "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
-                  "function offerFor(carrier){",
-                  "  return d.offers.find(function(o){",
-                  "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
-                  "    return segCarrier[sidx]===carrier;",
-                  "  });",
-                  "}",
-                  "function fbaFor(carrier){",
-                  "  var o = offerFor(carrier);",
-                  "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
-                  "}",
-                  "",
-                  "pm.collectionVariables.set(\"jtOfferKey\", offerFor(\"JT\").offerKey);",
-                  "pm.test(\"JT free baggage == 0\", function(){ pm.expect(fbaFor(\"JT\")).to.eql(0); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "V4.2 \u2014 AncillarySearch on JT",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/ancillary/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "ancillary",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{jtOfferKey}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var offers = pm.response.json().data.ancillaryOffers;",
-                  "pm.test(\"JT ancillaryCode == [5,10,15] (+5 above FBA 0)\", function(){",
-                  "  pm.expect(offers.map(function(o){return o.ancillaryCode;})).to.eql([5,10,15]);",
-                  "});",
-                  "pm.test(\"each is CHECKEDBAGGAGE on JT100\", function(){",
-                  "  offers.forEach(function(o){ pm.expect(o.addAncillaryType).to.eql(\"CHECKEDBAGGAGE\"); pm.expect(o.flightNumber).to.eql(\"JT100\"); });",
-                  "});"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Negative assertions",
-      "item": [
-        {
-          "name": "NEG-1 \u2014 Backdate search (req#3)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/search/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "search",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"CGK\",\n      \"destAirport\": \"DPS\",\n      \"depDate\": \"2020-01-01\"\n    }\n  ],\n  \"adultNumber\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==205\", function(){ pm.expect(pm.response.json().code).to.eql(205); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-2 \u2014 Empty offerKey verify",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/preOrderVerify/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "preOrderVerify",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==101\", function(){ pm.expect(pm.response.json().code).to.eql(101); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-3 \u2014 Order missing contact email",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/order/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "order",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"A\",\n      \"lastName\": \"B\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"email\": \"\",\n      \"phone\": \"+62-1\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Requires gaOfferKey (run TC-E2E-01 Step 1 or V1.1 first)."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==529\", function(){ pm.expect(pm.response.json().code).to.eql(529); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-4a \u2014 Order for duplicate-pay test",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/order/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "order",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"A\",\n      \"lastName\": \"B\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"email\": \"a@b.co\",\n      \"phone\": \"+62-1\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "pm.collectionVariables.set(\"dupOrderId\", j.data.orderId);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-4b \u2014 Pay (first time, succeeds)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/pay/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "pay",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{dupOrderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==0\", function(){ pm.expect(pm.response.json().code).to.eql(0); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-4c \u2014 Pay again (duplicate)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/pay/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "pay",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"{{dupOrderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==748 (duplicate payment)\", function(){ pm.expect(pm.response.json().code).to.eql(748); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "NEG-5 \u2014 OrderDetail unknown order",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/flight/orderDetail/v3",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "flight",
-                "orderDetail",
-                "v3"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderId\": \"0000000000\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"code==148 (order does not exist)\", function(){ pm.expect(pm.response.json().code).to.eql(148); });"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Second Baggage \u2014 TSY BPI (search -> order -> orderDetail)",
-      "item": [
-        {
-          "name": "SB-1 \u2014 Search (/secondBaggage)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/secondBaggage",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "secondBaggage"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"segments\": [\n    {\n      \"carrier\": \"VJ\",\n      \"flightNumber\": \"VJ84\",\n      \"depAirport\": \"BNE\",\n      \"depTime\": \"202607312330\",\n      \"arrAirport\": \"SGN\",\n      \"arrTime\": \"202608010500\",\n      \"tripType\": 1,\n      \"segmentIndex\": 1,\n      \"id\": 0\n    }\n  ],\n  \"passenger\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Response depends only on segments; passenger is ignored. Captures the 70kg productItem for order."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"status 0 / success / auxiliaryOrderNo null\", function(){",
-                  "  pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
-                  "});",
-                  "pm.test(\"one product, 9 baggage tiers\", function(){",
-                  "  pm.expect(j.products).to.have.lengthOf(1);",
-                  "  pm.expect(j.products[0].productItems).to.have.lengthOf(9);",
-                  "});",
-                  "pm.test(\"segment enriched (cabin B, cabinGrade Y, tripType '1')\", function(){",
-                  "  var s = j.products[0].segment;",
-                  "  pm.expect(s.cabin).to.eql(\"B\"); pm.expect(s.cabinGrade).to.eql(\"Y\"); pm.expect(s.tripType).to.eql(\"1\");",
-                  "});",
-                  "pm.test(\"tiers ascending 20..100\", function(){",
-                  "  pm.expect(j.products[0].productItems.map(function(i){return i.baggage.baggageAllowance;}))",
-                  "    .to.eql([20,30,40,50,60,70,80,90,100]);",
-                  "});",
-                  "var tier = j.products[0].productItems.find(function(i){return i.baggage.baggageAllowance===70;});",
-                  "pm.test(\"70kg tier is 358.38\", function(){ pm.expect(tier.basePrice).to.eql(358.38); });",
-                  "pm.test(\"70kg productItemId is deterministic\", function(){",
-                  "  pm.expect(tier.productItemId).to.eql(\"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\");",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-2 \u2014 Order (/orderCrossSecondBaggage)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "orderCrossSecondBaggage"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Self-contained: the productItem (70kg) is inlined with its deterministic productItemId, so this request is valid JSON on its own (copy-paste from docs works). Round-trips with BPI-1 search."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); });",
-                  "pm.test(\"auxiliaryOrderNo echoed\", function(){",
-                  "  pm.expect(j.auxiliaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-2enc \u2014 Order (AES-encrypted body)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "text/plain"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "orderCrossSecondBaggage"
-              ]
-            },
-            "description": "Same order as SB-2, but the body is AES/CBC-encrypted + base64 (key = IV = B@4p6aay&)*^M0^r) by the pre-request script, mirroring the client. The server decrypts it. (Accept-both: SB-2's plaintext body also works.)",
-            "body": {
-              "mode": "raw",
-              "options": {
-                "raw": {
-                  "language": "text"
-                }
-              },
-              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var CryptoJS = require('crypto-js');",
-                  "var key = CryptoJS.enc.Utf8.parse('B@4p6aay&)*^M0^r');",
-                  "var plaintext = pm.request.body.raw;",
-                  "var encrypted = CryptoJS.AES.encrypt(plaintext, key, {",
-                  "  iv: key, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
-                  "});",
-                  "pm.request.body.update({ mode: 'raw', raw: encrypted.toString() });"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test('encrypted order accepted (status 0)', function(){ pm.expect(j.status).to.eql('0'); });",
-                  "pm.test('auxiliaryOrderNo echoed', function(){ pm.expect(j.auxiliaryOrderNo).to.eql('{{bpiAuxNo}}'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-3 \u2014 OrderDetail (/ancillaryOrderDetail)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/ancillaryOrderDetail",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "ancillaryOrderDetail"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"auxiliaryOrderNo\": \"{{bpiAuxNo}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); });",
-                  "var d = j.data;",
-                  "pm.test(\"orderStatus PURCHASED, currency USD, total 358.38\", function(){",
-                  "  pm.expect(d.orderStatus).to.eql(\"PURCHASED\");",
-                  "  pm.expect(d.currency).to.eql(\"USD\");",
-                  "  pm.expect(d.totalPrice).to.eql(358.38);",
-                  "});",
-                  "pm.test(\"ancillaryOrderNo echoed\", function(){",
-                  "  pm.expect(d.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
-                  "});",
-                  "pm.test(\"segment arrTime null; passenger linked by segmentId\", function(){",
-                  "  pm.expect(d.segments[0].arrTime).to.be.null;",
-                  "  pm.expect(d.passengerAncillaries[0].segmentId).to.eql(d.segments[0].id);",
-                  "  pm.expect(d.passengerAncillaries[0].passengerName).to.eql(\"TESTER/ALPHA\");",
-                  "  pm.expect(d.passengerAncillaries[0].baggageWeight).to.eql(\"70\");",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-4 \u2014 Order invalid productItemId (negative)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "orderCrossSecondBaggage"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"ancillaryOrderNo\": \"BPI-NEG\",\n  \"orderNo\": \"BPI-NEG\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"TAMPERED/notarealid=\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "Tampered productItemId fails re-derivation -> generic failure envelope."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"status 1, auxiliaryOrderNo null (generic failure)\", function(){",
-                  "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-5 \u2014 OrderDetail unknown order (negative)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/ancillaryOrderDetail",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "ancillaryOrderDetail"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"auxiliaryOrderNo\": \"does-not-exist\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"status 1, order not found, data null\", function(){",
-                  "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.msg).to.eql(\"order not found\"); pm.expect(j.data).to.be.null;",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "SB-6 \u2014 Order blocked route SIN->KUL (negative)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "orderCrossSecondBaggage"
-              ]
-            },
-            "description": "SIN->KUL and SIN->CGK are not eligible for second baggage; the order fails hard with HTTP 500.",
-            "body": {
-              "mode": "raw",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              },
-              "raw": "{\n  \"ancillaryOrderNo\": \"SB-BLOCK-KUL\",\n  \"orderNo\": \"SB-BLOCK-KUL\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"depAirport\": \"SIN\",\n          \"depTime\": \"202609200800\",\n          \"arrAirport\": \"KUL\",\n          \"arrTime\": \"202609200900\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"IGNORED-route-checked-first\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "pm.test(\"HTTP 500 (blocked route fails the order)\", function(){ pm.response.to.have.status(500); });",
-                  "pm.test(\"msg names the blocked route\", function(){ pm.expect(j.msg).to.include(\"SIN-KUL\"); });"
-                ]
-              }
-            }
-          ]
-        }
+     "name": "Step 0 — Authorize (token)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
       ],
-      "description": "TSY BPI variant of second baggage (tsy-bpi contract). Paths: /secondBaggage, /orderCrossSecondBaggage, /ancillaryOrderDetail. A second BPI version (standardizedv3-bpi) is planned separately."
+      "url": {
+       "raw": "{{baseUrl}}/uaa/oauth/token",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "uaa",
+        "oauth",
+        "token"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"grantType\": \"clientCredentials\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "v1 does not enforce the token; captured for realism only."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"HTTP 200\", function(){ pm.response.to.have.status(200); });",
+         "pm.test(\"accessToken non-empty\", function(){ pm.expect(j.accessToken).to.be.a(\"string\").and.not.empty; });",
+         "pm.test(\"tokenType == Bearer\", function(){ pm.expect(j.tokenType).to.eql(\"Bearer\"); });",
+         "pm.test(\"expiresIn > 0\", function(){ pm.expect(j.expiresIn).to.be.above(0); });",
+         "pm.test(\"scope has all 6 verbs\", function(){",
+         "  [\"search\",\"preOrderVerify\",\"ancillarySearch\",\"order\",\"pay\",\"orderDetail\"].forEach(function(v){",
+         "    pm.expect(j.scope).to.include(v);",
+         "  });",
+         "});",
+         "pm.collectionVariables.set(\"accessToken\", j.accessToken);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 1 — Search (2 ADT, KNO->CGK)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Captures gaOfferKey and jtOfferKey for downstream steps."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
+         "var d = j.data;",
+         "var segCarrier = {};",
+         "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
+         "function offerFor(carrier){",
+         "  return d.offers.find(function(o){",
+         "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
+         "    return segCarrier[sidx]===carrier;",
+         "  });",
+         "}",
+         "function fbaFor(carrier){",
+         "  var o = offerFor(carrier);",
+         "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
+         "}",
+         "",
+         "pm.test(\"currency == USD\", function(){ pm.expect(d.currency).to.eql(\"USD\"); });",
+         "pm.test(\"exactly 3 offers\", function(){ pm.expect(d.offers).to.have.lengthOf(3); });",
+         "pm.test(\"carriers == {JT,GA,QZ}\", function(){",
+         "  var set = d.segments.map(function(s){return s.marketingCarrier;}).sort();",
+         "  pm.expect(set).to.eql([\"GA\",\"JT\",\"QZ\"]);",
+         "});",
+         "pm.test(\"route/date echoed on every segment (req#1,#2)\", function(){",
+         "  d.segments.forEach(function(s){",
+         "    pm.expect(s.depAirport).to.eql(\"KNO\");",
+         "    pm.expect(s.arrAirport).to.eql(\"CGK\");",
+         "    pm.expect(s.depTime).to.match(/^2026-09-20/);",
+         "    pm.expect(s.arrTime).to.match(/^2026-09-20/);",
+         "  });",
+         "});",
+         "pm.test(\"FBA JT==0, QZ==0, GA==20 (req#8)\", function(){",
+         "  pm.expect(fbaFor(\"JT\")).to.eql(0);",
+         "  pm.expect(fbaFor(\"QZ\")).to.eql(0);",
+         "  pm.expect(fbaFor(\"GA\")).to.eql(20);",
+         "});",
+         "pm.test(\"every offer product==[BASIC] & offerKey non-empty (req#4)\", function(){",
+         "  d.offers.forEach(function(o){ pm.expect(o.product).to.eql([\"BASIC\"]); pm.expect(o.offerKey).to.not.be.empty; });",
+         "});",
+         "var ga = offerFor(\"GA\");",
+         "var ch = {}; ga.charges.forEach(function(c){ ch[c.passengerType+\"/\"+c.chargeType]=c.price; });",
+         "pm.test(\"GA ADT/FARE==95 & ADT/TAX==12\", function(){",
+         "  pm.expect(ch[\"ADT/FARE\"]).to.eql(95.0); pm.expect(ch[\"ADT/TAX\"]).to.eql(12.0);",
+         "});",
+         "pm.collectionVariables.set(\"gaOfferKey\", ga.offerKey);",
+         "pm.collectionVariables.set(\"jtOfferKey\", offerFor(\"JT\").offerKey);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 2 — PreOrderVerify",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/preOrderVerify/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "preOrderVerify",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "var d = j.data;",
+         "pm.test(\"exactly 1 offer\", function(){ pm.expect(d.offers).to.have.lengthOf(1); });",
+         "pm.test(\"offerKey identity (req#5)\", function(){",
+         "  pm.expect(d.offers[0].offerKey).to.eql(pm.collectionVariables.get(\"gaOfferKey\"));",
+         "});",
+         "pm.test(\"segment still KNO->CGK on 2026-09-20\", function(){",
+         "  pm.expect(d.segments[0].depAirport).to.eql(\"KNO\");",
+         "  pm.expect(d.segments[0].arrAirport).to.eql(\"CGK\");",
+         "  pm.expect(d.segments[0].depTime).to.match(/^2026-09-20/);",
+         "});",
+         "// V3 — decode the offerKey (base64url) and assert its payload.",
+         "pm.test(\"V3 offerKey decodes to GA|KNO|CGK|2026-09-20|BASIC\", function(){",
+         "  var k = pm.collectionVariables.get(\"gaOfferKey\").replace(/-/g,\"+\").replace(/_/g,\"/\");",
+         "  var decoded = Buffer.from(k, \"base64\").toString(\"utf8\");",
+         "  pm.expect(decoded).to.eql(\"GA|KNO|CGK|2026-09-20|BASIC\");",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 3 — AncillarySearch",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/ancillary/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "ancillary",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "TEST_CASES.md Step 3 expects bag25Key '2_0_0$GA200$PA25' (Open item b). The service emits '1_0_0$GA200$PA25' because the offerKey is stateless and carries no passenger counts; the prefix is cosmetic. The chain still resolves."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "var offers = j.data.ancillaryOffers;",
+         "pm.test(\"exactly 3 CHECKEDBAGGAGE options\", function(){ pm.expect(offers).to.have.lengthOf(3); });",
+         "pm.test(\"ancillaryCode == [25,30,35] (req#9, +5 above GA FBA 20)\", function(){",
+         "  pm.expect(offers.map(function(o){return o.ancillaryCode;})).to.eql([25,30,35]);",
+         "});",
+         "pm.test(\"each option WEIGHT / GA200 / KNO->CGK\", function(){",
+         "  offers.forEach(function(o){",
+         "    pm.expect(o.unitOfMeasurement).to.eql(\"WEIGHT\");",
+         "    pm.expect(o.flightNumber).to.eql(\"GA200\");",
+         "    pm.expect(o.oriAirport).to.eql(\"KNO\");",
+         "    pm.expect(o.destAirport).to.eql(\"CGK\");",
+         "  });",
+         "});",
+         "var bag25 = offers.find(function(o){return o.ancillaryCode===25;}).ancillaryKey;",
+         "// TEST_CASES.md Open item (b) expects prefix '2_0_0' (adt_chd_inf). The stateless",
+         "// offerKey carries no pax counts, so the service emits the cosmetic '1_0_0' prefix.",
+         "// We assert the stable suffix and capture whatever the service emits for downstream use.",
+         "pm.test(\"bag25 key ends with $GA200$PA25\", function(){ pm.expect(bag25).to.match(/\\$GA200\\$PA25$/); });",
+         "pm.test(\"NOTE bag25 prefix (doc expects 2_0_0, service emits 1_0_0)\", function(){",
+         "  pm.expect(bag25.split(\"$\")[0]).to.eql(\"1_0_0\");",
+         "});",
+         "pm.collectionVariables.set(\"bag25Key\", bag25);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 4 — Order (booking, 2 ADT + 25kg bag)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/order/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "order",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"ancillaryKeyLists\": [\n    {\n      \"passengerIndex\": 0,\n      \"ancillaryKeys\": [\n        \"{{bag25Key}}\"\n      ]\n    }\n  ],\n  \"passengers\": [\n    {\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"M\",\n      \"birthDay\": \"1990-01-15\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"SITI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"F\",\n      \"birthDay\": \"1992-03-20\",\n      \"nationality\": \"ID\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"email\": \"agent@example.com\",\n      \"phone\": \"+62-8110000000\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "var d = j.data;",
+         "pm.test(\"orderId is 10 digits (req#6)\", function(){ pm.expect(d.orderId).to.match(/^\\d{10}$/); });",
+         "pm.test(\"expireInMinutes==30\", function(){ pm.expect(d.expireInMinutes).to.eql(30); });",
+         "pm.test(\"product==[BASIC] & currency==USD\", function(){",
+         "  pm.expect(d.product).to.eql([\"BASIC\"]); pm.expect(d.currency).to.eql(\"USD\");",
+         "});",
+         "pm.test(\"addedAncillary: pax0, code 25, price 37.50\", function(){",
+         "  pm.expect(d.addedAncillary).to.have.lengthOf(1);",
+         "  pm.expect(d.addedAncillary[0].passengerIndex).to.eql(0);",
+         "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].ancillaryCode).to.eql(25);",
+         "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].price).to.eql(37.5);",
+         "});",
+         "pm.test(\"total == 251.50 (2*(95+12) + 37.50)\", function(){ pm.expect(d.total).to.eql(251.5); });",
+         "pm.collectionVariables.set(\"orderId\", d.orderId);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 5 — Pay (issuance)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/pay/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "pay",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"payType\": \"BPA\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "pm.test(\"amount=='251.50', currency USD, txn non-empty\", function(){",
+         "  pm.expect(j.data.amount).to.eql(\"251.50\");",
+         "  pm.expect(j.data.currency).to.eql(\"USD\");",
+         "  pm.expect(j.data.transactionId).to.not.be.empty;",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 5b — Pay (ANTOM wallet-to-wallet, expects 748 if Step 5 ran)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/pay/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "pay",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"payType\": \"ANTOM\",\n  \"accountNumber\": \"\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"wallet pay: receiver account or 748 duplicate\", function(){",
+         "  if (j.code === 0) {",
+         "    pm.expect(j.data.accountNumber).to.eql(\"21881200168224D1\");",
+         "  } else {",
+         "    pm.expect(j.code).to.eql(748);",
+         "  }",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Step 6 — OrderDetail (verify issuance)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/orderDetail/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "orderDetail",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "var d = j.data;",
+         "pm.test(\"status ISSUED, payTime set, amount 251.50, product BASIC\", function(){",
+         "  pm.expect(d.orderInfo.status).to.eql(\"ISSUED\");",
+         "  pm.expect(d.orderInfo.payTime).to.not.be.empty;",
+         "  pm.expect(d.orderInfo.amount).to.eql(\"251.50\");",
+         "  pm.expect(d.orderInfo.product).to.eql([\"BASIC\"]);",
+         "});",
+         "pm.test(\"pnr 6-alnum & email echoed\", function(){",
+         "  pm.expect(d.pnrs[0].pnr).to.match(/^[A-Z0-9]{6}$/);",
+         "  pm.expect(d.pnrs[0].email).to.eql(\"agent@example.com\");",
+         "});",
+         "pm.test(\"2 tickets, each 13 digits\", function(){",
+         "  var t = d.pnrs[0].passengers.map(function(p){return p.ticketNumber;});",
+         "  pm.expect(t).to.have.lengthOf(2);",
+         "  t.forEach(function(x){ pm.expect(x).to.match(/^\\d{13}$/); });",
+         "});",
+         "pm.test(\"passengerList echoed verbatim (req#7)\", function(){",
+         "  pm.expect(d.passengerList).to.eql([{\"firstName\": \"BUDI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"M\", \"birthDay\": \"1990-01-15\", \"nationality\": \"ID\"}, {\"firstName\": \"SITI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"F\", \"birthDay\": \"1992-03-20\", \"nationality\": \"ID\"}]);",
+         "});",
+         "pm.test(\"segments KNO->CGK GA200 end-to-end\", function(){",
+         "  d.segments.forEach(function(s){",
+         "    pm.expect(s.depAirport).to.eql(\"KNO\"); pm.expect(s.arrAirport).to.eql(\"CGK\");",
+         "    pm.expect(s.flightNumber).to.eql(\"GA200\");",
+         "  });",
+         "});",
+         "pm.test(\"ancillaryList 25kg tied to SANTOSO/BUDI\", function(){",
+         "  pm.expect(d.ancillaryList).to.have.lengthOf(1);",
+         "  pm.expect(d.ancillaryList[0].ancillaryCode).to.eql(25);",
+         "  pm.expect(d.ancillaryList[0].passengerName).to.eql(\"SANTOSO/BUDI\");",
+         "});"
+        ]
+       }
+      }
+     ]
     }
-  ]
+   ]
+  },
+  {
+   "name": "V1 — Multi-passenger echo (3 pax)",
+   "item": [
+    {
+     "name": "V1.1 — Search (self-contained)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
+         "var d = j.data;",
+         "var segCarrier = {};",
+         "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
+         "function offerFor(carrier){",
+         "  return d.offers.find(function(o){",
+         "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
+         "    return segCarrier[sidx]===carrier;",
+         "  });",
+         "}",
+         "function fbaFor(carrier){",
+         "  var o = offerFor(carrier);",
+         "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
+         "}",
+         "",
+         "pm.collectionVariables.set(\"gaOfferKey\", offerFor(\"GA\").offerKey);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "V1.2 — Order (3 passengers: 2 ADT + 1 CHD)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/order/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "order",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"M\",\n      \"birthDay\": \"1990-01-15\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"SITI\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"ADT\",\n      \"sex\": \"F\",\n      \"birthDay\": \"1992-03-20\",\n      \"nationality\": \"ID\"\n    },\n    {\n      \"firstName\": \"AGUS\",\n      \"lastName\": \"SANTOSO\",\n      \"passengerType\": \"CHD\",\n      \"sex\": \"M\",\n      \"birthDay\": \"2018-07-01\",\n      \"nationality\": \"ID\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"firstName\": \"BUDI\",\n      \"lastName\": \"SANTOSO\",\n      \"email\": \"agent@example.com\",\n      \"phone\": \"+62-8110000000\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Child fare/tax multiplier = 75% (Open item a: multiplier applies to TAX as well)."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "pm.test(\"total==294.25 (2*(95+12)+(71.25+9.0); child=75% of fare & tax)\", function(){",
+         "  pm.expect(j.data.total).to.eql(294.25);",
+         "});",
+         "pm.collectionVariables.set(\"orderId\", j.data.orderId);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "V1.3 — Pay",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/pay/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "pay",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==0\", function(){ pm.expect(pm.response.json().code).to.eql(0); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "V1.4 — OrderDetail (3-pax echo)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/orderDetail/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "orderDetail",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var d = pm.response.json().data;",
+         "pm.test(\"passengerList length 3, verbatim (req#7)\", function(){",
+         "  pm.expect(d.passengerList).to.eql([{\"firstName\": \"BUDI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"M\", \"birthDay\": \"1990-01-15\", \"nationality\": \"ID\"}, {\"firstName\": \"SITI\", \"lastName\": \"SANTOSO\", \"passengerType\": \"ADT\", \"sex\": \"F\", \"birthDay\": \"1992-03-20\", \"nationality\": \"ID\"}, {\"firstName\": \"AGUS\", \"lastName\": \"SANTOSO\", \"passengerType\": \"CHD\", \"sex\": \"M\", \"birthDay\": \"2018-07-01\", \"nationality\": \"ID\"}]);",
+         "});",
+         "pm.test(\"pnr names in order BUDI/SITI/AGUS\", function(){",
+         "  pm.expect(d.pnrs[0].passengers.map(function(p){return p.passenger;}))",
+         "    .to.eql([\"SANTOSO/BUDI\",\"SANTOSO/SITI\",\"SANTOSO/AGUS\"]);",
+         "});",
+         "pm.test(\"3 tickets, each 13 digits\", function(){",
+         "  d.pnrs[0].passengers.forEach(function(p){ pm.expect(p.ticketNumber).to.match(/^\\d{13}$/); });",
+         "});"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "V2 — All-airline inventory + filter",
+   "item": [
+    {
+     "name": "V2.1 — Search without airlineIds",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
+         "var d = j.data;",
+         "var segCarrier = {};",
+         "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
+         "function offerFor(carrier){",
+         "  return d.offers.find(function(o){",
+         "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
+         "    return segCarrier[sidx]===carrier;",
+         "  });",
+         "}",
+         "function fbaFor(carrier){",
+         "  var o = offerFor(carrier);",
+         "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
+         "}",
+         "",
+         "pm.test(\"all 6 airlines returned {AK,GA,JL,JT,QZ,SQ}\", function(){",
+         "  pm.expect(d.segments.map(function(s){return s.marketingCarrier;}).sort())",
+         "    .to.eql([\"AK\",\"GA\",\"JL\",\"JT\",\"QZ\",\"SQ\"]);",
+         "});",
+         "pm.test(\"FBA per airline: JT/QZ/AK 0, GA/SQ 20, JL 15\", function(){",
+         "  pm.expect(fbaFor(\"JT\")).to.eql(0); pm.expect(fbaFor(\"QZ\")).to.eql(0); pm.expect(fbaFor(\"AK\")).to.eql(0);",
+         "  pm.expect(fbaFor(\"GA\")).to.eql(20); pm.expect(fbaFor(\"SQ\")).to.eql(20);",
+         "  pm.expect(fbaFor(\"JL\")).to.eql(15);",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "V2.2 — Search airlineIds=[GA]",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"GA\"\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var d = pm.response.json().data;",
+         "pm.test(\"exactly 1 offer (GA)\", function(){",
+         "  pm.expect(d.offers).to.have.lengthOf(1);",
+         "  pm.expect(d.segments[0].marketingCarrier).to.eql(\"GA\");",
+         "});"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "V4 — JT baggage ladder (FBA 0)",
+   "item": [
+    {
+     "name": "V4.1 — Search (capture JT offerKey)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"nonstop\": false,\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"KNO\",\n      \"destAirport\": \"CGK\",\n      \"depDate\": \"2026-09-20\"\n    }\n  ],\n  \"adultNumber\": 2,\n  \"childNumber\": 0,\n  \"infantNumber\": 0,\n  \"airlineIds\": [\n    \"JT\",\n    \"GA\",\n    \"QZ\"\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0 & success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"success\"); });",
+         "var d = j.data;",
+         "var segCarrier = {};",
+         "d.segments.forEach(function(s,i){ segCarrier[i]=s.marketingCarrier; });",
+         "function offerFor(carrier){",
+         "  return d.offers.find(function(o){",
+         "    var sidx = d.flights[o.flightRefs[0].flightIndex].segmentRefs[0].segmentIndex;",
+         "    return segCarrier[sidx]===carrier;",
+         "  });",
+         "}",
+         "function fbaFor(carrier){",
+         "  var o = offerFor(carrier);",
+         "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
+         "}",
+         "",
+         "pm.collectionVariables.set(\"jtOfferKey\", offerFor(\"JT\").offerKey);",
+         "pm.test(\"JT free baggage == 0\", function(){ pm.expect(fbaFor(\"JT\")).to.eql(0); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "V4.2 — AncillarySearch on JT",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/ancillary/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "ancillary",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{jtOfferKey}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var offers = pm.response.json().data.ancillaryOffers;",
+         "pm.test(\"JT ancillaryCode == [5,10,15] (+5 above FBA 0)\", function(){",
+         "  pm.expect(offers.map(function(o){return o.ancillaryCode;})).to.eql([5,10,15]);",
+         "});",
+         "pm.test(\"each is CHECKEDBAGGAGE on JT100\", function(){",
+         "  offers.forEach(function(o){ pm.expect(o.addAncillaryType).to.eql(\"CHECKEDBAGGAGE\"); pm.expect(o.flightNumber).to.eql(\"JT100\"); });",
+         "});"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Negative assertions",
+   "item": [
+    {
+     "name": "NEG-1 — Backdate search (req#3)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/search/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "search",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"product\": [\n    \"BASIC\"\n  ],\n  \"routes\": [\n    {\n      \"cabin\": [\n        \"Y\"\n      ],\n      \"oriAirport\": \"CGK\",\n      \"destAirport\": \"DPS\",\n      \"depDate\": \"2020-01-01\"\n    }\n  ],\n  \"adultNumber\": 1\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==205\", function(){ pm.expect(pm.response.json().code).to.eql(205); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-2 — Empty offerKey verify",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/preOrderVerify/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "preOrderVerify",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==101\", function(){ pm.expect(pm.response.json().code).to.eql(101); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-3 — Order missing contact email",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/order/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "order",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"A\",\n      \"lastName\": \"B\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"email\": \"\",\n      \"phone\": \"+62-1\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Requires gaOfferKey (run TC-E2E-01 Step 1 or V1.1 first)."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==529\", function(){ pm.expect(pm.response.json().code).to.eql(529); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-4a — Order for duplicate-pay test",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/order/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "order",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"offerKey\": \"{{gaOfferKey}}\",\n  \"passengers\": [\n    {\n      \"firstName\": \"A\",\n      \"lastName\": \"B\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"contacts\": [\n    {\n      \"contactType\": \"AG\",\n      \"email\": \"a@b.co\",\n      \"phone\": \"+62-1\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "pm.collectionVariables.set(\"dupOrderId\", j.data.orderId);"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-4b — Pay (first time, succeeds)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/pay/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "pay",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{dupOrderId}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==0\", function(){ pm.expect(pm.response.json().code).to.eql(0); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-4c — Pay again (duplicate)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/pay/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "pay",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"{{dupOrderId}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==748 (duplicate payment)\", function(){ pm.expect(pm.response.json().code).to.eql(748); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "NEG-5 — OrderDetail unknown order",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/flight/orderDetail/v3",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "flight",
+        "orderDetail",
+        "v3"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"orderId\": \"0000000000\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test(\"code==148 (order does not exist)\", function(){ pm.expect(pm.response.json().code).to.eql(148); });"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Second Baggage — TSY BPI (search -> order -> orderDetail)",
+   "item": [
+    {
+     "name": "SB-1 — Search (/secondBaggage)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/secondBaggage",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "secondBaggage"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"segments\": [\n    {\n      \"carrier\": \"VJ\",\n      \"flightNumber\": \"VJ84\",\n      \"depAirport\": \"BNE\",\n      \"depTime\": \"202607312330\",\n      \"arrAirport\": \"SGN\",\n      \"arrTime\": \"202608010500\",\n      \"tripType\": 1,\n      \"segmentIndex\": 1,\n      \"id\": 0\n    }\n  ],\n  \"passenger\": []\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Response depends only on segments; passenger is ignored. Captures the 70kg productItem for order."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"status 0 / success / auxiliaryOrderNo null\", function(){",
+         "  pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
+         "});",
+         "pm.test(\"one product, 9 baggage tiers\", function(){",
+         "  pm.expect(j.products).to.have.lengthOf(1);",
+         "  pm.expect(j.products[0].productItems).to.have.lengthOf(9);",
+         "});",
+         "pm.test(\"segment enriched (cabin B, cabinGrade Y, tripType '1')\", function(){",
+         "  var s = j.products[0].segment;",
+         "  pm.expect(s.cabin).to.eql(\"B\"); pm.expect(s.cabinGrade).to.eql(\"Y\"); pm.expect(s.tripType).to.eql(\"1\");",
+         "});",
+         "pm.test(\"tiers ascending 20..100\", function(){",
+         "  pm.expect(j.products[0].productItems.map(function(i){return i.baggage.baggageAllowance;}))",
+         "    .to.eql([20,30,40,50,60,70,80,90,100]);",
+         "});",
+         "var tier = j.products[0].productItems.find(function(i){return i.baggage.baggageAllowance===70;});",
+         "pm.test(\"70kg tier is 358.38\", function(){ pm.expect(tier.basePrice).to.eql(358.38); });",
+         "pm.test(\"70kg productItemId is deterministic\", function(){",
+         "  pm.expect(tier.productItemId).to.eql(\"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\");",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-2 — Order (/orderCrossSecondBaggage)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "orderCrossSecondBaggage"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Self-contained: the productItem (70kg) is inlined with its deterministic productItemId, so this request is valid JSON on its own (copy-paste from docs works). Round-trips with BPI-1 search."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); pm.expect(j.msg).to.eql(\"success\"); });",
+         "pm.test(\"auxiliaryOrderNo echoed\", function(){",
+         "  pm.expect(j.auxiliaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-2enc — Order (AES-encrypted body)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "text/plain"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "orderCrossSecondBaggage"
+       ]
+      },
+      "description": "Same order as SB-2, but the body is AES/CBC-encrypted + base64 (key = IV = B@4p6aay&)*^M0^r) by the pre-request script, mirroring the client. The server decrypts it. (Accept-both: SB-2's plaintext body also works.)",
+      "body": {
+       "mode": "raw",
+       "options": {
+        "raw": {
+         "language": "text"
+        }
+       },
+       "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "prerequest",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var CryptoJS = require('crypto-js');",
+         "var key = CryptoJS.enc.Utf8.parse('B@4p6aay&)*^M0^r');",
+         "var plaintext = pm.request.body.raw;",
+         "var encrypted = CryptoJS.AES.encrypt(plaintext, key, {",
+         "  iv: key, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
+         "});",
+         "pm.request.body.update({ mode: 'raw', raw: encrypted.toString() });"
+        ]
+       }
+      },
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test('encrypted order accepted (status 0)', function(){ pm.expect(j.status).to.eql('0'); });",
+         "pm.test('auxiliaryOrderNo echoed', function(){ pm.expect(j.auxiliaryOrderNo).to.eql('{{bpiAuxNo}}'); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-3 — OrderDetail (/ancillaryOrderDetail)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillaryOrderDetail",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillaryOrderDetail"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"auxiliaryOrderNo\": \"{{bpiAuxNo}}\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); });",
+         "var d = j.data;",
+         "pm.test(\"orderStatus PURCHASED, currency USD, total 358.38\", function(){",
+         "  pm.expect(d.orderStatus).to.eql(\"PURCHASED\");",
+         "  pm.expect(d.currency).to.eql(\"USD\");",
+         "  pm.expect(d.totalPrice).to.eql(358.38);",
+         "});",
+         "pm.test(\"ancillaryOrderNo echoed\", function(){",
+         "  pm.expect(d.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
+         "});",
+         "pm.test(\"segment arrTime null; passenger linked by segmentId\", function(){",
+         "  pm.expect(d.segments[0].arrTime).to.be.null;",
+         "  pm.expect(d.passengerAncillaries[0].segmentId).to.eql(d.segments[0].id);",
+         "  pm.expect(d.passengerAncillaries[0].passengerName).to.eql(\"TESTER/ALPHA\");",
+         "  pm.expect(d.passengerAncillaries[0].baggageWeight).to.eql(\"70\");",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-4 — Order invalid productItemId (negative)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "orderCrossSecondBaggage"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryOrderNo\": \"BPI-NEG\",\n  \"orderNo\": \"BPI-NEG\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"TAMPERED/notarealid=\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Tampered productItemId fails re-derivation -> generic failure envelope."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"status 1, auxiliaryOrderNo null (generic failure)\", function(){",
+         "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.auxiliaryOrderNo).to.be.null;",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-5 — OrderDetail unknown order (negative)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillaryOrderDetail",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillaryOrderDetail"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"auxiliaryOrderNo\": \"does-not-exist\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"status 1, order not found, data null\", function(){",
+         "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.msg).to.eql(\"order not found\"); pm.expect(j.data).to.be.null;",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SB-6 — Order blocked route SIN->KUL (negative)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "orderCrossSecondBaggage"
+       ]
+      },
+      "description": "SIN->KUL and SIN->CGK are not eligible for second baggage; the order fails hard with HTTP 500.",
+      "body": {
+       "mode": "raw",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       },
+       "raw": "{\n  \"ancillaryOrderNo\": \"SB-BLOCK-KUL\",\n  \"orderNo\": \"SB-BLOCK-KUL\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"depAirport\": \"SIN\",\n          \"depTime\": \"202609200800\",\n          \"arrAirport\": \"KUL\",\n          \"arrTime\": \"202609200900\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"IGNORED-route-checked-first\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+      }
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"HTTP 500 (blocked route fails the order)\", function(){ pm.response.to.have.status(500); });",
+         "pm.test(\"msg names the blocked route\", function(){ pm.expect(j.msg).to.include(\"SIN-KUL\"); });"
+        ]
+       }
+      }
+     ]
+    }
+   ],
+   "description": "TSY BPI variant of second baggage (tsy-bpi contract). Paths: /secondBaggage, /orderCrossSecondBaggage, /ancillaryOrderDetail. A second BPI version (standardizedv3-bpi) is planned separately."
+  },
+  {
+   "name": "Standardized BPI (search -> order -> orderDetail GET)",
+   "description": "Standardized Ancillary Post-Issuance contract (PRD section V). Envelope {code:int,msg,data}, always HTTP 200. Authorization header accepted but not validated. See STANDARDIZED_BPI_DESIGN.md.",
+   "item": [
+    {
+     "name": "SBPI-1 — Search with passengers (/ancillary/v1/baggage/search)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/baggage/search",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "baggage",
+        "search"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryType\": \"CHECKEDBAGGAGE\",\n  \"routes\": [\n    {\n      \"tripType\": 1,\n      \"segments\": [\n        {\n          \"marketingCarrier\": \"AK\",\n          \"flightNumber\": \"AK342\",\n          \"operatingCarrier\": \"AK\",\n          \"operatingFlightNumber\": \"AK342\",\n          \"departureAirport\": \"CGK\",\n          \"arrivalAirport\": \"BKI\",\n          \"departureTime\": \"2027-12-01 08:00:00\",\n          \"arrivalTime\": \"2027-12-01 12:00:00\",\n          \"cabin\": \"Y\"\n        }\n      ]\n    }\n  ],\n  \"passengers\": [\n    {\n      \"passengerId\": 1,\n      \"pnr\": \"TEST01\",\n      \"firstName\": \"ALPHA\",\n      \"lastName\": \"TESTER\",\n      \"passengerType\": \"ADT\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Post-issuance search: passengers present -> passengerOffers. Captures the 20kg ancillaryKey."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code 0 / Success\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.msg).to.eql(\"Success\"); });",
+         "pm.test(\"currency USD, one route\", function(){ pm.expect(j.data.currency).to.eql(\"USD\"); pm.expect(j.data.routes).to.have.lengthOf(1); });",
+         "var po = j.data.routes[0].passengerOffers;",
+         "pm.test(\"passengerOffers per pax, 9 tiers, no generalOffers\", function(){",
+         "  pm.expect(j.data.routes[0].generalOffers).to.be.undefined;",
+         "  pm.expect(po).to.have.lengthOf(1); pm.expect(po[0].passengerId).to.eql(1);",
+         "  pm.expect(po[0].ancillaryOffers).to.have.lengthOf(9);",
+         "});",
+         "pm.test(\"tiers ascending 20..100, WEIGHT, CHECKEDBAGGAGE\", function(){",
+         "  var offers = po[0].ancillaryOffers;",
+         "  pm.expect(offers.map(function(o){return o.ancillaryCode;})).to.eql([20,30,40,50,60,70,80,90,100]);",
+         "  offers.forEach(function(o){ pm.expect(o.unitOfMeasurement).to.eql(\"WEIGHT\"); pm.expect(o.ancillaryType).to.eql(\"CHECKEDBAGGAGE\"); pm.expect(o.ancillaryPiece).to.eql(1); });",
+         "});",
+         "var tier20 = po[0].ancillaryOffers.find(function(o){return o.ancillaryCode===20;});",
+         "pm.test(\"20kg tier is 52.14\", function(){ pm.expect(tier20.price).to.eql(52.14); });",
+         "pm.collectionVariables.set(\"sbpiKey\", tier20.ancillaryKey);",
+         "pm.collectionVariables.set(\"sbpiOrderNo\", \"TVLK-BPI-\" + Date.now());"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-2 — Search pre-issuance, no passengers (generalOffers)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/baggage/search",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "baggage",
+        "search"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryType\": \"CHECKEDBAGGAGE\",\n  \"routes\": [\n    {\n      \"tripType\": 1,\n      \"segments\": [\n        {\n          \"marketingCarrier\": \"AK\",\n          \"flightNumber\": \"AK342\",\n          \"operatingCarrier\": \"AK\",\n          \"operatingFlightNumber\": \"AK342\",\n          \"departureAirport\": \"CGK\",\n          \"arrivalAirport\": \"BKI\",\n          \"departureTime\": \"2027-12-01 08:00:00\",\n          \"arrivalTime\": \"2027-12-01 12:00:00\",\n          \"cabin\": \"Y\"\n        }\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Pre-issuance live fetch: no passenger information -> generalOffers."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code 0\", function(){ pm.expect(j.code).to.eql(0); });",
+         "pm.test(\"generalOffers, no passengerOffers\", function(){",
+         "  var r = j.data.routes[0];",
+         "  pm.expect(r.passengerOffers).to.be.undefined;",
+         "  pm.expect(r.generalOffers[0].ancillaryOffers).to.have.lengthOf(9);",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-3 — Order (/ancillary/v1/orders)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/orders",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "orders"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryOrderNo\": \"{{sbpiOrderNo}}\",\n  \"isCross\": true,\n  \"passengers\": [\n    {\n      \"passengerId\": 1,\n      \"pnr\": \"TEST01\",\n      \"firstName\": \"ALPHA\",\n      \"lastName\": \"TESTER\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"selectedAncillary\": [\n    {\n      \"passengerId\": 1,\n      \"ancillaryKey\": \"{{sbpiKey}}\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Client-generated ancillaryOrderNo; ancillaryKey from SBPI-1. RS status ISSUING."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code 0 / ISSUING\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.data.orderStatus).to.eql(\"ISSUING\"); });",
+         "pm.test(\"ancillaryOrderNo echoed\", function(){ pm.expect(j.data.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"sbpiOrderNo\")); });",
+         "pm.test(\"total 52.14 USD\", function(){ pm.expect(j.data.total).to.eql(52.14); pm.expect(j.data.currency).to.eql(\"USD\"); });",
+         "pm.test(\"segments reconstructed from ancillaryKey\", function(){",
+         "  var s = j.data.selectedAncillary[0].segments[0];",
+         "  pm.expect(s.departureAirport).to.eql(\"CGK\"); pm.expect(s.arrivalAirport).to.eql(\"BKI\");",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-4 — OrderDetail GET (/ancillary/v1/orders/{no})",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/orders/{{sbpiOrderNo}}",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "orders",
+        "{{sbpiOrderNo}}"
+       ]
+      },
+      "description": "Polled by Traveloka until status change; mock returns ISSUED immediately."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code 0 / ISSUED\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.data.orderStatus).to.eql(\"ISSUED\"); });",
+         "pm.test(\"unitOfMeasurement WEIGHT on items\", function(){",
+         "  j.data.selectedAncillary.forEach(function(i){ pm.expect(i.unitOfMeasurement).to.eql(\"WEIGHT\"); });",
+         "});",
+         "pm.test(\"total consistent\", function(){ pm.expect(j.data.total).to.eql(52.14); });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-5 — Order invalid ancillaryKey (negative)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/orders",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "orders"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryOrderNo\": \"TVLK-BPI-NEG\",\n  \"isCross\": true,\n  \"passengers\": [\n    {\n      \"passengerId\": 1,\n      \"pnr\": \"TEST01\",\n      \"firstName\": \"ALPHA\",\n      \"lastName\": \"TESTER\",\n      \"passengerType\": \"ADT\"\n    }\n  ],\n  \"selectedAncillary\": [\n    {\n      \"passengerId\": 1,\n      \"ancillaryKey\": \"FORGED\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": ""
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"HTTP 200, code 400, data null\", function(){",
+         "  pm.response.to.have.status(200);",
+         "  pm.expect(j.code).to.eql(400); pm.expect(j.msg).to.eql(\"invalid ancillaryKey\"); pm.expect(j.data).to.be.null;",
+         "});"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-6 — OrderDetail unknown order (negative)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/orders/NO-SUCH-ORDER",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "orders",
+        "NO-SUCH-ORDER"
+       ]
+      },
+      "description": ""
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"code 400, data null\", function(){ pm.expect(j.code).to.eql(400); pm.expect(j.data).to.be.null; });"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "SBPI-7 — Search blocked route SIN->KUL (negative)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       },
+       {
+        "key": "Authorization",
+        "value": "Bearer {{accessToken}}"
+       }
+      ],
+      "url": {
+       "raw": "{{baseUrl}}/ancillary/v1/baggage/search",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ancillary",
+        "v1",
+        "baggage",
+        "search"
+       ]
+      },
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"ancillaryType\": \"CHECKEDBAGGAGE\",\n  \"routes\": [\n    {\n      \"tripType\": 1,\n      \"segments\": [\n        {\n          \"marketingCarrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"operatingCarrier\": \"TR\",\n          \"operatingFlightNumber\": \"TR456\",\n          \"departureAirport\": \"SIN\",\n          \"arrivalAirport\": \"KUL\",\n          \"departureTime\": \"2027-12-01 08:00:00\",\n          \"arrivalTime\": \"2027-12-01 12:00:00\",\n          \"cabin\": \"Y\"\n        }\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      },
+      "description": "Blocked routes are shared with tsy-bpi; standardized contract maps them to code 555."
+     },
+     "response": [],
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "var j = pm.response.json();",
+         "pm.test(\"HTTP 200, code 555, data null\", function(){",
+         "  pm.response.to.have.status(200);",
+         "  pm.expect(j.code).to.eql(555); pm.expect(j.data).to.be.null;",
+         "});"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
 }
