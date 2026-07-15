@@ -1434,6 +1434,66 @@
           ]
         },
         {
+          "name": "SB-2enc \u2014 Order (AES-encrypted body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orderCrossSecondBaggage"
+              ]
+            },
+            "description": "Same order as SB-2, but the body is AES/CBC-encrypted + base64 (key = IV = B@4p6aay&)*^M0^r) by the pre-request script, mirroring the client. The server decrypts it. (Accept-both: SB-2's plaintext body also works.)",
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              },
+              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var CryptoJS = require('crypto-js');",
+                  "var key = CryptoJS.enc.Utf8.parse('B@4p6aay&)*^M0^r');",
+                  "var plaintext = pm.request.body.raw;",
+                  "var encrypted = CryptoJS.AES.encrypt(plaintext, key, {",
+                  "  iv: key, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
+                  "});",
+                  "pm.request.body.update({ mode: 'raw', raw: encrypted.toString() });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test('encrypted order accepted (status 0)', function(){ pm.expect(j.status).to.eql('0'); });",
+                  "pm.test('auxiliaryOrderNo echoed', function(){ pm.expect(j.auxiliaryOrderNo).to.eql('{{bpiAuxNo}}'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "SB-3 \u2014 OrderDetail (/ancillaryOrderDetail)",
           "request": {
             "method": "POST",
