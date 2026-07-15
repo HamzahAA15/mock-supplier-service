@@ -8,7 +8,7 @@ TIER_PRICES = {20: 52.14, 30: 76.84, 40: 103.18, 50: 256.30, 60: 307.33,
 
 
 def test_search_happy_path(client):
-    res = client.post("/postBaggage", json=search_body())
+    res = client.post("/secondBaggage", json=search_body())
     body = res.json()
     assert res.status_code == 200
     assert body["status"] == "0" and body["msg"] == "success"
@@ -17,7 +17,7 @@ def test_search_happy_path(client):
 
 
 def test_nine_tiers_with_prices(client):
-    body = client.post("/postBaggage", json=search_body()).json()
+    body = client.post("/secondBaggage", json=search_body()).json()
     items = body["products"][0]["productItems"]
     assert len(items) == 9
     weights = [i["baggage"]["baggageAllowance"] for i in items]
@@ -33,7 +33,7 @@ def test_nine_tiers_with_prices(client):
 
 
 def test_product_item_id_is_standard_base64(client):
-    body = client.post("/postBaggage", json=search_body()).json()
+    body = client.post("/secondBaggage", json=search_body()).json()
     for i in body["products"][0]["productItems"]:
         pid = i["productItemId"]
         # 32-byte sha256 -> 44-char standard base64 ending with '='
@@ -44,7 +44,7 @@ def test_product_item_id_is_standard_base64(client):
 
 
 def test_segment_echoed_and_enriched(client):
-    body = client.post("/postBaggage", json=search_body()).json()
+    body = client.post("/secondBaggage", json=search_body()).json()
     seg = body["products"][0]["segment"]
     assert seg["carrier"] == "VJ" and seg["flightNumber"] == "VJ84"
     assert seg["depAirport"] == "BNE" and seg["arrAirport"] == "SGN"
@@ -56,7 +56,7 @@ def test_segment_echoed_and_enriched(client):
 
 
 def test_per_segment_products(client):
-    body = client.post("/postBaggage", json=search_body(segments=[SEG_VJ, SEG_GA])).json()
+    body = client.post("/secondBaggage", json=search_body(segments=[SEG_VJ, SEG_GA])).json()
     assert len(body["products"]) == 2
     assert body["products"][0]["segment"]["flightNumber"] == "VJ84"
     assert body["products"][1]["segment"]["flightNumber"] == "GA200"
@@ -69,6 +69,6 @@ def test_per_segment_products(client):
 def test_passenger_ignored(client):
     # Missing, empty, and empty-field passenger arrays all still return the catalog.
     for passenger in (None, [], [{"passengerType": "", "lastName": "", "firstName": ""}]):
-        body = client.post("/postBaggage", json=search_body(passenger=passenger)).json()
+        body = client.post("/secondBaggage", json=search_body(passenger=passenger)).json()
         assert body["status"] == "0"
         assert len(body["products"][0]["productItems"]) == 9

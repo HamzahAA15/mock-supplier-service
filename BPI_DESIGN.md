@@ -1,9 +1,10 @@
-# Baggage Post-Issuance (BPI) Mock — Implementation Plan
+# Second Baggage Mock — Implementation Plan
 
 Status: **Implemented** · Owner: Hamzah Alfauzi · Date: 2026-07-08
 
-Adds the TSY-native baggage post-issuance flow (`search → order → orderDetail`) to the
+Adds the TSY-native second-baggage flow (`search → order → orderDetail`) to the
 existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
+(Internally still referenced as "BPI"; the file/module names keep that shorthand.)
 
 ---
 
@@ -11,7 +12,7 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
 
 1. **Contract:** tsy-bpi only (`status:"0"` string envelope). `standardizedv3-bpi` is out of scope.
 2. **Placement:** new router in the existing app (`app/routers/bpi.py`), reusing repo patterns.
-3. **Paths (confirmed):** search `POST /postBaggage`, order `POST /orderCrossPostBaggage`,
+3. **Paths (confirmed):** search `POST /secondBaggage`, order `POST /orderCrossSecondBaggage`,
    orderDetail `POST /ancillaryOrderDetail`.
 4. **Payment model:** there is no pay step. A successful `order` means payment is done;
    `orderDetail` thereafter returns `orderStatus: "PURCHASED"` — always, immediately.
@@ -22,6 +23,12 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
 7. **Errors (generic failure only):** HTTP 200 with
    - order: `{"auxiliaryOrderNo": null, "msg": "<reason>", "status": "1"}`
    - orderDetail (unknown auxiliaryOrderNo, incl. after restart): `{"status": "1", "msg": "order not found", "data": null}`
+11. **Blocked routes (order):** segments on the routes **SIN→KUL** or **SIN→CGK** (directional:
+    dep `SIN`, arr `KUL`/`CGK`) are not eligible for second baggage. Ordering such a segment fails
+    the order with **HTTP 500** and body `{"auxiliaryOrderNo": null, "status": "1", "msg": "second
+    baggage not available for route <dep>-<arr>"}` — the order is not created. (Deliberate exception
+    to the HTTP-200 rule in §7, per product requirement.) Search is unaffected. Constant lives in
+    `app/services/bpi_catalog.py::BLOCKED_SECOND_BAGGAGE_ROUTES`.
 8. **Auth:** none, same as existing v1 endpoints.
 9. **Search passengers:** the `passenger` array may be missing, empty, or have empty-string
    fields; search ignores it entirely — the response depends only on `segments`.

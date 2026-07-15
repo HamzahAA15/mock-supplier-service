@@ -12,6 +12,26 @@ SEG_GA = {
     "tripType": 1, "segmentIndex": 2, "id": 0,
 }
 
+# Blocked routes for the order negative case (dep SIN -> arr KUL/CGK).
+SEG_SIN_KUL = {
+    "carrier": "TR", "flightNumber": "TR456", "depAirport": "SIN",
+    "depTime": "202609200800", "arrAirport": "KUL", "arrTime": "202609200900",
+    "tripType": 1, "segmentIndex": 1, "id": 0,
+}
+
+SEG_SIN_CGK = {
+    "carrier": "TR", "flightNumber": "TR789", "depAirport": "SIN",
+    "depTime": "202609201000", "arrAirport": "CGK", "arrTime": "202609201200",
+    "tripType": 1, "segmentIndex": 1, "id": 0,
+}
+
+# Allowed control: reverse direction is NOT blocked.
+SEG_KUL_SIN = {
+    "carrier": "TR", "flightNumber": "TR457", "depAirport": "KUL",
+    "depTime": "202609201300", "arrAirport": "SIN", "arrTime": "202609201400",
+    "tripType": 1, "segmentIndex": 1, "id": 0,
+}
+
 # Synthetic passenger — do NOT use real booking PII in the repo.
 PAX_ADT = {
     "passengerType": "ADT", "lastName": "TESTER", "firstName": "ALPHA",
