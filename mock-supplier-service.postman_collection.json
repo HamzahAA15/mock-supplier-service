@@ -1321,10 +1321,10 @@
       ]
     },
     {
-      "name": "BPI \u2014 Post-issuance baggage (search -> order -> orderDetail)",
+      "name": "Second Baggage (search -> order -> orderDetail)",
       "item": [
         {
-          "name": "BPI-1 \u2014 Search (/postBaggage)",
+          "name": "SB-1 \u2014 Search (/secondBaggage)",
           "request": {
             "method": "POST",
             "header": [
@@ -1334,12 +1334,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/postBaggage",
+              "raw": "{{baseUrl}}/secondBaggage",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "postBaggage"
+                "secondBaggage"
               ]
             },
             "body": {
@@ -1387,7 +1387,7 @@
           ]
         },
         {
-          "name": "BPI-2 \u2014 Order (/orderCrossPostBaggage)",
+          "name": "SB-2 \u2014 Order (/orderCrossSecondBaggage)",
           "request": {
             "method": "POST",
             "header": [
@@ -1397,12 +1397,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/orderCrossPostBaggage",
+              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "orderCrossPostBaggage"
+                "orderCrossSecondBaggage"
               ]
             },
             "body": {
@@ -1434,7 +1434,7 @@
           ]
         },
         {
-          "name": "BPI-3 \u2014 OrderDetail (/ancillaryOrderDetail)",
+          "name": "SB-3 \u2014 OrderDetail (/ancillaryOrderDetail)",
           "request": {
             "method": "POST",
             "header": [
@@ -1492,7 +1492,7 @@
           ]
         },
         {
-          "name": "BPI-4 \u2014 Order invalid productItemId (negative)",
+          "name": "SB-4 \u2014 Order invalid productItemId (negative)",
           "request": {
             "method": "POST",
             "header": [
@@ -1502,12 +1502,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/orderCrossPostBaggage",
+              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "orderCrossPostBaggage"
+                "orderCrossSecondBaggage"
               ]
             },
             "body": {
@@ -1538,7 +1538,7 @@
           ]
         },
         {
-          "name": "BPI-5 \u2014 OrderDetail unknown order (negative)",
+          "name": "SB-5 \u2014 OrderDetail unknown order (negative)",
           "request": {
             "method": "POST",
             "header": [
@@ -1577,6 +1577,51 @@
                   "pm.test(\"status 1, order not found, data null\", function(){",
                   "  pm.expect(j.status).to.eql(\"1\"); pm.expect(j.msg).to.eql(\"order not found\"); pm.expect(j.data).to.be.null;",
                   "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SB-6 \u2014 Order blocked route SIN->KUL (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orderCrossSecondBaggage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orderCrossSecondBaggage"
+              ]
+            },
+            "description": "SIN->KUL and SIN->CGK are not eligible for second baggage; the order fails hard with HTTP 500.",
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"ancillaryOrderNo\": \"SB-BLOCK-KUL\",\n  \"orderNo\": \"SB-BLOCK-KUL\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"depAirport\": \"SIN\",\n          \"depTime\": \"202609200800\",\n          \"arrAirport\": \"KUL\",\n          \"arrTime\": \"202609200900\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"IGNORED-route-checked-first\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.test(\"HTTP 500 (blocked route fails the order)\", function(){ pm.response.to.have.status(500); });",
+                  "pm.test(\"msg names the blocked route\", function(){ pm.expect(j.msg).to.include(\"SIN-KUL\"); });"
                 ]
               }
             }
