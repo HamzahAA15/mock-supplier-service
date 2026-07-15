@@ -197,21 +197,21 @@ echoed and the correct state transitions.
 
 ---
 
-## BPI — Baggage Post-Issuance (tsy-bpi)
+## Second Baggage (tsy-bpi)
 
 Separate flow from the flight chain above: `search → order → orderDetail`, **no pay step**
 (a successful order is already paid). Envelope is `status: "0"` (string) / `msg: "success"`.
 Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: [`BPI_DESIGN.md`](./BPI_DESIGN.md).
 
-### TC-BPI-01 — Full chain
+### TC-SB-01 — Full chain
 
-1. **Search** `POST /postBaggage` with `segments[]` (passenger ignored). Then:
+1. **Search** `POST /secondBaggage` with `segments[]` (passenger ignored). Then:
    - `status == "0"`, `msg == "success"`, `auxiliaryOrderNo == null`.
    - one `products[]` per RQ segment; each has **9** `productItems` (weights `[20,30,40,50,60,70,80,90,100]`,
      prices `52.14…536.74`), `productType 1`, `saleType 2`, `baggagePieces 1`, `isAllWeight true`.
    - `segment` echoed + enriched (`cabin:"B"`, `cabinGrade:"Y"`, `tripType:"1"`).
    - `productItemId` = standard base64 of sha256 (deterministic, stateless). Capture the 70kg tier.
-2. **Order** `POST /orderCrossPostBaggage` with client `ancillaryOrderNo` + `passengerAuxes[]`
+2. **Order** `POST /orderCrossSecondBaggage` with client `ancillaryOrderNo` + `passengerAuxes[]`
    (each = `passengerInfo` + `segmentProducts{segment, productItem}` from search). Then:
    - `status == "0"`, `auxiliaryOrderNo` **echoed** (never server-generated).
    - the order's `productItemId` is re-derived from its RQ segment+weight and must match.
@@ -220,7 +220,7 @@ Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: 
    - `segments[].arrTime == null`; `passengerAncillaries[].segmentId` links to `segments[].id`;
      `passengerName` = `"Last/First"`, `baggageWeight` = `str(kg)`, `pnrNo` = pax `pnrCode`.
 
-### BPI variations & negatives
+### Second Baggage variations & negatives
 
 | Case | Request | Expected |
 |---|---|---|
@@ -230,4 +230,6 @@ Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: 
 | Invalid productItemId | Order with tampered `productItemId` | `{auxiliaryOrderNo: null, status: "1"}` |
 | Mismatched weight | Order id for 20kg but `baggageAllowance: 30` | `status "1"` (re-derivation fails) |
 | Empty auxiliaryOrderNo | Order without `ancillaryOrderNo`/`orderNo` | `status "1"` |
+| **Blocked route** | Order a segment `SIN→KUL` or `SIN→CGK` | **HTTP 500**, `msg` names the route; order not created |
+| Allowed reverse route | Order a segment `KUL→SIN` | `status "0"` (only `SIN→KUL`/`SIN→CGK` blocked) |
 | Unknown order | OrderDetail with unknown `auxiliaryOrderNo` (incl. after restart) | `{status: "1", msg: "order not found", data: null}` |

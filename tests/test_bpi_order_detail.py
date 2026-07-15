@@ -4,10 +4,10 @@ from tests.bpi_helpers import (
 
 
 def _place_order(client, aux_no="ORD-1", weight=20, segments=None):
-    rs = client.post("/postBaggage", json=search_body(segments=segments)).json()
+    rs = client.post("/secondBaggage", json=search_body(segments=segments)).json()
     seg = (segments or [SEG_VJ])[0]
     item = product_item_for(rs, 0, weight)
-    client.post("/orderCrossPostBaggage", json=order_body(aux_no, [pax_aux(seg, item)]))
+    client.post("/orderCrossSecondBaggage", json=order_body(aux_no, [pax_aux(seg, item)]))
     return aux_no
 
 
@@ -39,12 +39,12 @@ def test_segment_and_passenger_ancillary_linkage(client):
 
 
 def test_multi_passenger_totals(client):
-    rs = client.post("/postBaggage", json=search_body()).json()
+    rs = client.post("/secondBaggage", json=search_body()).json()
     item20 = product_item_for(rs, 0, 20)
     item30 = product_item_for(rs, 0, 30)
     pax2 = {"passengerType": "ADT", "lastName": "SAMPLE", "firstName": "BETA", "pnrCode": "TEST01"}
     body = order_body("MULTI", [pax_aux(SEG_VJ, item20), pax_aux(SEG_VJ, item30, info=pax2)])
-    client.post("/orderCrossPostBaggage", json=body)
+    client.post("/orderCrossSecondBaggage", json=body)
     data = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "MULTI"}).json()["data"]
     assert data["totalPrice"] == round(52.14 + 76.84, 2)
     assert len(data["passengerAncillaries"]) == 2

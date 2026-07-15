@@ -5,9 +5,10 @@ It returns deterministic, schema-shaped mock inventory across the core booking c
 (`token → search → preOrderVerify → ancillarySearch → order → pay → orderDetail`) so the
 aggregator can be integration-tested without a real airline backend.
 
-It also mocks the TSY-native **Baggage Post-Issuance (BPI)** flow
-(`/postBaggage → /orderCrossPostBaggage → /ancillaryOrderDetail`) — a separate
+It also mocks the TSY-native **Second Baggage** flow
+(`/secondBaggage → /orderCrossSecondBaggage → /ancillaryOrderDetail`) — a separate
 `status:"0"`-envelope contract with no pay step (a successful order is already paid).
+Ordering the routes `SIN→KUL` or `SIN→CGK` fails with HTTP 500 (not eligible for second baggage).
 
 Design: [DESIGN.md](DESIGN.md) · Wire shapes: [API_SCHEMAS.md](API_SCHEMAS.md) · BPI: [BPI_DESIGN.md](BPI_DESIGN.md)
 

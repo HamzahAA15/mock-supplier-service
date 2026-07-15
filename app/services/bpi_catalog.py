@@ -1,4 +1,4 @@
-"""Baggage Post-Issuance (BPI) fixed catalog + deterministic productItemId.
+"""Second Baggage fixed catalog + deterministic productItemId.
 
 Same stateless philosophy as offer_key: search derives IDs on the fly, order
 re-derives from its own RQ and compares. No shared state, restart-tolerant.
@@ -23,6 +23,14 @@ BAGGAGE_TIERS = {
     100: 536.74,
 }
 TIER_WEIGHTS = sorted(BAGGAGE_TIERS)  # ascending 20..100
+
+# Routes not eligible for second baggage at order time (directional dep->arr).
+# Ordering these fails the order with HTTP 500 (see routers/bpi.py, BPI_DESIGN.md).
+BLOCKED_SECOND_BAGGAGE_ROUTES = {("SIN", "KUL"), ("SIN", "CGK")}
+
+
+def is_route_blocked(seg: Dict[str, Any]) -> bool:
+    return (seg.get("depAirport"), seg.get("arrAirport")) in BLOCKED_SECOND_BAGGAGE_ROUTES
 
 
 def _segment_key(seg: Dict[str, Any]) -> str:

@@ -1,10 +1,11 @@
-"""Baggage Post-Issuance (BPI) endpoints — tsy-bpi contract.
+"""Second Baggage endpoints — tsy-bpi contract.
 
-Flow: search (/postBaggage) -> order (/orderCrossPostBaggage) -> orderDetail
+Flow: search (/secondBaggage) -> order (/orderCrossSecondBaggage) -> orderDetail
 (/ancillaryOrderDetail). No pay step: a successful order means paid, so
 orderDetail always returns orderStatus PURCHASED. See BPI_DESIGN.md.
 """
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from app.models.bpi import BpiOrderDetailRequest, BpiOrderRequest, BpiSearchRequest
 from app.services import bpi_catalog
@@ -15,7 +16,7 @@ router = APIRouter()
 _ORDER_FAILURE = {"auxiliaryOrderNo": None, "msg": "invalid productItemId", "status": "1"}
 
 
-@router.post("/postBaggage")
+@router.post("/secondBaggage")
 def bpi_search(req: BpiSearchRequest):
     # Response depends only on segments; passenger array is ignored.
     products = [
@@ -28,7 +29,7 @@ def bpi_search(req: BpiSearchRequest):
     return {"status": "0", "msg": "success", "auxiliaryOrderNo": None, "products": products}
 
 
-@router.post("/orderCrossPostBaggage")
+@router.post("/orderCrossSecondBaggage")
 def bpi_order(req: BpiOrderRequest):
     aux_no = req.ancillary_order_no or req.order_no
     if not aux_no:
@@ -41,6 +42,15 @@ def bpi_order(req: BpiOrderRequest):
         product_item = seg_products.get("productItem") or {}
         baggage = product_item.get("baggage") or {}
         weight = baggage.get("baggageAllowance")
+        # Business rule: certain routes are not eligible for second baggage. Fail the
+        # order hard with HTTP 500 before it is created (see BPI_DESIGN.md).
+        if bpi_catalog.is_route_blocked(seg):
+            return JSONResponse(status_code=500, content={
+                "auxiliaryOrderNo": None,
+                "status": "1",
+                "msg": "second baggage not available for route {}-{}".format(
+                    seg.get("depAirport", ""), seg.get("arrAirport", "")),
+            })
         if not bpi_catalog.validate_product_item(seg, weight, product_item.get("productItemId")):
             return dict(_ORDER_FAILURE)
         stored_auxes.append({
