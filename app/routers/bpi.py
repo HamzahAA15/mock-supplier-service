@@ -7,16 +7,36 @@ orderDetail always returns orderStatus PURCHASED. See BPI_DESIGN.md.
 These three paths and their logic are specific to TSY BPI; a second BPI version
 (standardizedv3-bpi) is planned separately and would live in its own router.
 """
-from fastapi import APIRouter
+import json
+
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.models.bpi import BpiOrderDetailRequest, BpiOrderRequest, BpiSearchRequest
-from app.services import bpi_catalog
+from app.services import bpi_catalog, crypto
 from app.services.bpi_orders import store
 
 router = APIRouter()
 
 _ORDER_FAILURE = {"auxiliaryOrderNo": None, "msg": "invalid productItemId", "status": "1"}
+
+
+def _parse_order_payload(raw: bytes):
+    """The /orderCrossSecondBaggage body is AES-CBC encrypted + base64 by the client.
+    Try to decrypt first (the real client path); fall back to plaintext JSON so
+    existing tests / manual curl keep working. Returns a dict, or None if unparseable.
+    """
+    text = raw.decode("utf-8", errors="replace").strip()
+    if not text:
+        return {}
+    try:
+        return json.loads(crypto.decrypt_aes_cbc(text))
+    except Exception:
+        pass
+    try:
+        return json.loads(text)
+    except Exception:
+        return None
 
 
 @router.post("/secondBaggage")
@@ -33,7 +53,13 @@ def bpi_search(req: BpiSearchRequest):
 
 
 @router.post("/orderCrossSecondBaggage")
-def bpi_order(req: BpiOrderRequest):
+async def bpi_order(request: Request):
+    # AES-encrypted body (client) or plaintext JSON (fallback) — see _parse_order_payload.
+    payload = _parse_order_payload(await request.body())
+    if payload is None:
+        return {"auxiliaryOrderNo": None, "msg": "invalid request body", "status": "1"}
+    req = BpiOrderRequest.model_validate(payload)
+
     aux_no = req.ancillary_order_no or req.order_no
     if not aux_no:
         return {"auxiliaryOrderNo": None, "msg": "ancillaryOrderNo cannot be empty", "status": "1"}

@@ -71,3 +71,18 @@ def pax_aux(segment, product_item, info=None):
 def order_body(aux_no, passenger_auxes, is_cross=1):
     return {"ancillaryOrderNo": aux_no, "orderNo": aux_no, "isCross": is_cross,
             "passengerAuxes": passenger_auxes}
+
+
+def encrypt_order_body(body_dict):
+    """Encrypt an order body exactly as the client does (AES-CBC + base64)."""
+    import json
+
+    from app.services.crypto import encrypt_aes_cbc
+    return encrypt_aes_cbc(json.dumps(body_dict))
+
+
+def post_encrypted_order(client, body_dict):
+    """POST an AES-encrypted order body (raw base64 string) like the real client."""
+    ciphertext = encrypt_order_body(body_dict)
+    return client.post("/orderCrossSecondBaggage", content=ciphertext,
+                       headers={"Content-Type": "text/plain"})

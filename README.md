@@ -10,6 +10,9 @@ It also mocks the **Second Baggage — TSY BPI** flow
 `status:"0"`-envelope contract with no pay step (a successful order is already paid).
 Ordering the routes `SIN→KUL` or `SIN→CGK` fails with HTTP 500 (not eligible for second baggage).
 These three paths and their logic are the **TSY BPI** variant; a second BPI version is planned separately.
+The `/orderCrossSecondBaggage` body is **AES/CBC-encrypted** (key = IV = `B@4p6aay&)*^M0^r`,
+standard base64) — the server decrypts it, and also accepts plaintext JSON as a fallback. See
+[BPI_DESIGN.md](BPI_DESIGN.md) §1.12.
 
 Design: [DESIGN.md](DESIGN.md) · Wire shapes: [API_SCHEMAS.md](API_SCHEMAS.md) · BPI: [BPI_DESIGN.md](BPI_DESIGN.md)
 

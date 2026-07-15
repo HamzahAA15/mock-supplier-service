@@ -219,6 +219,8 @@ Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: 
    (each = `passengerInfo` + `segmentProducts{segment, productItem}` from search). Then:
    - `status == "0"`, `auxiliaryOrderNo` **echoed** (never server-generated).
    - the order's `productItemId` is re-derived from its RQ segment+weight and must match.
+   - **Encrypted body:** the client sends the whole body AES/CBC-encrypted + base64 (key = IV =
+     `B@4p6aay&)*^M0^r`); the server decrypts first, then falls back to plaintext JSON.
 3. **OrderDetail** `POST /ancillaryOrderDetail` with `{auxiliaryOrderNo}`. Then:
    - `data.orderStatus == "PURCHASED"` (always, immediately), `totalPrice` = Σ ordered basePrice.
    - `segments[].arrTime == null`; `passengerAncillaries[].segmentId` links to `segments[].id`;
@@ -236,4 +238,7 @@ Fixture: segment `VJ VJ84 BNE→SGN`, 1 ADT `TESTER/ALPHA` (synthetic). Design: 
 | Empty auxiliaryOrderNo | Order without `ancillaryOrderNo`/`orderNo` | `status "1"` |
 | **Blocked route** | Order a segment `SIN→KUL` or `SIN→CGK` | **HTTP 500**, `msg` names the route; order not created |
 | Allowed reverse route | Order a segment `KUL→SIN` | `status "0"` (only `SIN→KUL`/`SIN→CGK` blocked) |
+| **Encrypted order body** | Order with AES/CBC+base64 body (key=IV=`B@4p6aay&)*^M0^r`) | decrypts, `status "0"`; business rules still apply |
+| Plaintext fallback | Order with plaintext JSON body | still `status "0"` (accept-both) |
+| Unparseable body | Order with a body that is neither valid AES nor JSON | `{auxiliaryOrderNo: null, status: "1", msg: "invalid request body"}` |
 | Unknown order | OrderDetail with unknown `auxiliaryOrderNo` (incl. after restart) | `{status: "1", msg: "order not found", data: null}` |
