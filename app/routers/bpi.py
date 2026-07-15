@@ -10,7 +10,7 @@ These three paths and their logic are specific to TSY BPI; a second BPI version
 import json
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.models.bpi import BpiOrderDetailRequest, BpiOrderRequest, BpiSearchRequest
 from app.services import bpi_catalog, crypto
@@ -24,19 +24,31 @@ _ORDER_FAILURE = {"auxiliaryOrderNo": None, "msg": "invalid productItemId", "sta
 def _parse_order_payload(raw: bytes):
     """The /orderCrossSecondBaggage body is AES-CBC encrypted + base64 by the client.
     Try to decrypt first (the real client path); fall back to plaintext JSON so
-    existing tests / manual curl keep working. Returns a dict, or None if unparseable.
+    existing tests / manual curl keep working.
+
+    Returns (payload_dict_or_None, was_encrypted). was_encrypted drives whether the
+    response is encrypted too (symmetric channel).
     """
     text = raw.decode("utf-8", errors="replace").strip()
     if not text:
-        return {}
+        return {}, False
     try:
-        return json.loads(crypto.decrypt_aes_cbc(text))
+        return json.loads(crypto.decrypt_aes_cbc(text)), True
     except Exception:
         pass
     try:
-        return json.loads(text)
+        return json.loads(text), False
     except Exception:
-        return None
+        return None, False
+
+
+def _order_response(body: dict, encrypted: bool, status_code: int = 200):
+    """Encrypt the response body (same AES/CBC + base64) when the request was
+    encrypted; otherwise return plain JSON. Applies to success and every error."""
+    if encrypted:
+        return Response(content=crypto.encrypt_aes_cbc(json.dumps(body)),
+                        media_type="text/plain", status_code=status_code)
+    return JSONResponse(content=body, status_code=status_code)
 
 
 @router.post("/secondBaggage")
@@ -55,14 +67,15 @@ def bpi_search(req: BpiSearchRequest):
 @router.post("/orderCrossSecondBaggage")
 async def bpi_order(request: Request):
     # AES-encrypted body (client) or plaintext JSON (fallback) — see _parse_order_payload.
-    payload = _parse_order_payload(await request.body())
+    # The response is encrypted iff the request was (symmetric channel).
+    payload, encrypted = _parse_order_payload(await request.body())
     if payload is None:
-        return {"auxiliaryOrderNo": None, "msg": "invalid request body", "status": "1"}
+        return _order_response({"auxiliaryOrderNo": None, "msg": "invalid request body", "status": "1"}, encrypted)
     req = BpiOrderRequest.model_validate(payload)
 
     aux_no = req.ancillary_order_no or req.order_no
     if not aux_no:
-        return {"auxiliaryOrderNo": None, "msg": "ancillaryOrderNo cannot be empty", "status": "1"}
+        return _order_response({"auxiliaryOrderNo": None, "msg": "ancillaryOrderNo cannot be empty", "status": "1"}, encrypted)
 
     stored_auxes = []
     for pax in (req.passenger_auxes or []):
@@ -74,14 +87,14 @@ async def bpi_order(request: Request):
         # Business rule: certain routes are not eligible for second baggage. Fail the
         # order hard with HTTP 500 before it is created (see BPI_DESIGN.md).
         if bpi_catalog.is_route_blocked(seg):
-            return JSONResponse(status_code=500, content={
+            return _order_response({
                 "auxiliaryOrderNo": None,
                 "status": "1",
                 "msg": "second baggage not available for route {}-{}".format(
                     seg.get("depAirport", ""), seg.get("arrAirport", "")),
-            })
+            }, encrypted, status_code=500)
         if not bpi_catalog.validate_product_item(seg, weight, product_item.get("productItemId")):
-            return dict(_ORDER_FAILURE)
+            return _order_response(dict(_ORDER_FAILURE), encrypted)
         stored_auxes.append({
             "passengerInfo": pax.get("passengerInfo") or {},
             "segment": seg,
@@ -91,7 +104,7 @@ async def bpi_order(request: Request):
 
     is_cross = req.is_cross if req.is_cross is not None else 1
     store.upsert(aux_no, is_cross, stored_auxes)
-    return {"auxiliaryOrderNo": aux_no, "msg": "success", "status": "0"}
+    return _order_response({"auxiliaryOrderNo": aux_no, "msg": "success", "status": "0"}, encrypted)
 
 
 @router.post("/ancillaryOrderDetail")
