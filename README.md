@@ -9,12 +9,21 @@ It also mocks the **Second Baggage — TSY BPI** flow
 (`/secondBaggage → /orderCrossSecondBaggage → /ancillaryOrderDetail`) — a separate
 `status:"0"`-envelope contract with no pay step (a successful order is already paid).
 Ordering the routes `SIN→KUL` or `SIN→CGK` fails with HTTP 500 (not eligible for second baggage).
-These three paths and their logic are the **TSY BPI** variant; a second BPI version is planned separately.
+These three paths and their logic are the **TSY BPI** variant.
 The `/orderCrossSecondBaggage` body is **AES/CBC-encrypted** (key = IV = `B@4p6aay&)*^M0^r`,
 standard base64) — the server decrypts it, and also accepts plaintext JSON as a fallback. See
 [BPI_DESIGN.md](BPI_DESIGN.md) §1.12.
 
-Design: [DESIGN.md](DESIGN.md) · Wire shapes: [API_SCHEMAS.md](API_SCHEMAS.md) · BPI: [BPI_DESIGN.md](BPI_DESIGN.md)
+It also mocks the **Standardized BPI** flow — same second-baggage behaviour under the
+Standardized Ancillary Post-Issuance contract:
+`POST /ancillary/v1/baggage/search → POST /ancillary/v1/orders → GET /ancillary/v1/orders/{ancillaryOrderNo}`.
+Envelope is `{code:int, msg, data}` (always HTTP 200), offers carry an opaque self-describing
+`ancillaryKey`, order RS returns `ISSUING` and orderDetail always returns `ISSUED`. Blocked
+routes (`SIN→KUL`, `SIN→CGK`) map to code `555`; unknown order/key to `400`; past departure
+to `5001`. Plain JSON body, `Authorization` accepted but not validated. See
+[STANDARDIZED_BPI_DESIGN.md](STANDARDIZED_BPI_DESIGN.md).
+
+Design: [DESIGN.md](DESIGN.md) · Wire shapes: [API_SCHEMAS.md](API_SCHEMAS.md) · BPI: [BPI_DESIGN.md](BPI_DESIGN.md) · Standardized BPI: [STANDARDIZED_BPI_DESIGN.md](STANDARDIZED_BPI_DESIGN.md)
 
 ## Setup & run
 
