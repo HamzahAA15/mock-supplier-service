@@ -36,10 +36,6 @@
     {
       "key": "bpiAuxNo",
       "value": "1373091015-1-0"
-    },
-    {
-      "key": "bpiProductItem",
-      "value": ""
     }
   ],
   "item": [
@@ -1382,7 +1378,9 @@
                   "});",
                   "var tier = j.products[0].productItems.find(function(i){return i.baggage.baggageAllowance===70;});",
                   "pm.test(\"70kg tier is 358.38\", function(){ pm.expect(tier.basePrice).to.eql(358.38); });",
-                  "pm.collectionVariables.set(\"bpiProductItem\", JSON.stringify(tier));"
+                  "pm.test(\"70kg productItemId is deterministic\", function(){",
+                  "  pm.expect(tier.productItemId).to.eql(\"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\");",
+                  "});"
                 ]
               }
             }
@@ -1409,14 +1407,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\"passengerType\": \"ADT\", \"lastName\": \"TESTER\", \"firstName\": \"ALPHA\", \"pnrCode\": \"TEST01\"},\n      \"segmentProducts\": { \"segment\": {\"carrier\": \"VJ\", \"flightNumber\": \"VJ84\", \"depAirport\": \"BNE\", \"depTime\": \"202607312330\", \"arrAirport\": \"SGN\", \"arrTime\": \"202608010500\", \"tripType\": 1, \"segmentIndex\": 1, \"id\": 0}, \"productItem\": {{bpiProductItem}} }\n    }\n  ]\n}",
+              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Orders the 70kg productItem captured from search (round-trip; productItemId re-derived server-side)."
+            "description": "Self-contained: the productItem (70kg) is inlined with its deterministic productItemId, so this request is valid JSON on its own (copy-paste from docs works). Round-trips with BPI-1 search."
           },
           "response": [],
           "event": [
