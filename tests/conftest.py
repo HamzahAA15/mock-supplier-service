@@ -1,9 +1,21 @@
+from datetime import date, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.bpi_orders import store as bpi_store
 from app.services.orders import store
+
+
+def future_date(days=60):
+    """A YYYY-MM-DD departure date safely in the future, relative to today.
+
+    Tests must not hardcode near-future dates: /flight/search/v3 rejects
+    departures earlier than the current time (result code 205), so a literal
+    date silently expires once the system clock passes it.
+    """
+    return (date.today() + timedelta(days=days)).strftime("%Y-%m-%d")
 
 
 @pytest.fixture()
@@ -20,7 +32,9 @@ def _reset_store():
     bpi_store.clear()
 
 
-def search_body(ori="CGK", dest="DPS", dep_date="2026-07-10", adult=1, child=0, infant=0, **extra):
+def search_body(ori="CGK", dest="DPS", dep_date=None, adult=1, child=0, infant=0, **extra):
+    if dep_date is None:
+        dep_date = future_date()
     body = {
         "product": ["BASIC"],
         "nonstop": False,
