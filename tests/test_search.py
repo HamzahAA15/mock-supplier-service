@@ -1,6 +1,6 @@
 import base64
 
-from tests.conftest import search_body
+from tests.conftest import future_date, search_body
 
 
 def decode_key(offer_key):
@@ -22,10 +22,11 @@ def test_happy_path_all_offers(client):
     assert len(data["ancillaries"]) == 6
     assert data["penalties"] == []
 
-    # Doc example offerKeys are reproduced exactly (CGK->DPS 2026-07-10).
+    # offerKeys encode the requested route/date (CGK->DPS, future-relative).
+    dep = future_date()
     keys = [o["offerKey"] for o in data["offers"]]
-    assert keys[0] == "SlR8Q0dLfERQU3wyMDI2LTA3LTEwfEJBU0lD"
-    assert decode_key(keys[1]) == "GA|CGK|DPS|2026-07-10|BASIC"
+    assert decode_key(keys[0]) == "JT|CGK|DPS|{}|BASIC".format(dep)
+    assert decode_key(keys[1]) == "GA|CGK|DPS|{}|BASIC".format(dep)
 
     # Per-airline FBA (req #8), in order; piece 0 when FBA=0.
     # JT 0, GA 20, QZ 0, AK 0, SQ 20, JL 15.
@@ -45,17 +46,18 @@ def test_happy_path_all_offers(client):
 
 
 def test_echo_route_and_date(client):
-    res = client.post("/flight/search/v3", json=search_body(ori="KNO", dest="CGK", dep_date="2026-09-20"))
+    dep = future_date(90)
+    res = client.post("/flight/search/v3", json=search_body(ori="KNO", dest="CGK", dep_date=dep))
     data = res.json()["data"]
     for seg in data["segments"]:
         assert seg["depAirport"] == "KNO"
         assert seg["arrAirport"] == "CGK"
-        assert seg["depTime"].startswith("2026-09-20 ")
-        assert seg["arrTime"].startswith("2026-09-20 ")
+        assert seg["depTime"].startswith(dep + " ")
+        assert seg["arrTime"].startswith(dep + " ")
         assert seg["stopovers"] == []
     for offer in data["offers"]:
         airline, ori, dest, dep_date, product = decode_key(offer["offerKey"]).split("|")
-        assert (ori, dest, dep_date, product) == ("KNO", "CGK", "2026-09-20", "BASIC")
+        assert (ori, dest, dep_date, product) == ("KNO", "CGK", dep, "BASIC")
 
 
 def test_airline_filter(client):
