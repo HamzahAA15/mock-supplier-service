@@ -197,7 +197,11 @@ echoed and the correct state transitions.
 
 ---
 
-## Second Baggage (tsy-bpi)
+## Second Baggage — TSY BPI (tsy-bpi contract)
+
+> **Variant: TSY BPI.** These cases cover the **TSY BPI** version (`tsy-bpi`) — paths
+> `/secondBaggage`, `/orderCrossSecondBaggage`, `/ancillaryOrderDetail`. A second BPI version
+> (`standardizedv3-bpi`) is planned separately and will get its own test-case section.
 
 Separate flow from the flight chain above: `search → order → orderDetail`, **no pay step**
 (a successful order is already paid). Envelope is `status: "0"` (string) / `msg: "success"`.

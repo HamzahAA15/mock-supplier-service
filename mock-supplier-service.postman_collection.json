@@ -1321,7 +1321,7 @@
       ]
     },
     {
-      "name": "Second Baggage (search -> order -> orderDetail)",
+      "name": "Second Baggage \u2014 TSY BPI (search -> order -> orderDetail)",
       "item": [
         {
           "name": "SB-1 \u2014 Search (/secondBaggage)",
@@ -1627,7 +1627,8 @@
             }
           ]
         }
-      ]
+      ],
+      "description": "TSY BPI variant of second baggage (tsy-bpi contract). Paths: /secondBaggage, /orderCrossSecondBaggage, /ancillaryOrderDetail. A second BPI version (standardizedv3-bpi) is planned separately."
     }
   ]
 }
