@@ -1,7 +1,8 @@
-"""Second Baggage fixed catalog + deterministic productItemId.
+"""Second Baggage fixed catalog + deterministic productItemId — TSY BPI variant.
 
 Same stateless philosophy as offer_key: search derives IDs on the fly, order
 re-derives from its own RQ and compares. No shared state, restart-tolerant.
+Specific to TSY BPI (tsy-bpi contract); a second BPI version is planned separately.
 """
 import base64
 import hashlib

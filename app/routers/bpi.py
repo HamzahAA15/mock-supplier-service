@@ -1,8 +1,11 @@
-"""Second Baggage endpoints — tsy-bpi contract.
+"""Second Baggage endpoints — TSY BPI variant (tsy-bpi contract).
 
 Flow: search (/secondBaggage) -> order (/orderCrossSecondBaggage) -> orderDetail
 (/ancillaryOrderDetail). No pay step: a successful order means paid, so
 orderDetail always returns orderStatus PURCHASED. See BPI_DESIGN.md.
+
+These three paths and their logic are specific to TSY BPI; a second BPI version
+(standardizedv3-bpi) is planned separately and would live in its own router.
 """
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse

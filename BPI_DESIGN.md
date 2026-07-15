@@ -1,6 +1,12 @@
-# Second Baggage Mock — Implementation Plan
+# Second Baggage Mock (TSY BPI) — Implementation Plan
 
 Status: **Implemented** · Owner: Hamzah Alfauzi · Date: 2026-07-08
+
+> **Variant: TSY BPI.** This document and the three endpoints below
+> (`/secondBaggage`, `/orderCrossSecondBaggage`, `/ancillaryOrderDetail`) — and all their
+> logic — implement the **TSY BPI** version of second baggage (`tsy-bpi` contract). A second
+> BPI version (e.g. `standardizedv3-bpi`) is planned and will be added separately with its own
+> paths/logic; anything labeled "TSY BPI" here is specific to this variant.
 
 Adds the TSY-native second-baggage flow (`search → order → orderDetail`) to the
 existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
@@ -10,7 +16,8 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
 
 ## 1. Confirmed decisions
 
-1. **Contract:** tsy-bpi only (`status:"0"` string envelope). `standardizedv3-bpi` is out of scope.
+1. **Contract:** **TSY BPI** (`tsy-bpi`) only (`status:"0"` string envelope). The other BPI
+   version (`standardizedv3-bpi`) is out of scope here and will be its own implementation.
 2. **Placement:** new router in the existing app (`app/routers/bpi.py`), reusing repo patterns.
 3. **Paths (confirmed):** search `POST /secondBaggage`, order `POST /orderCrossSecondBaggage`,
    orderDetail `POST /ancillaryOrderDetail`.
