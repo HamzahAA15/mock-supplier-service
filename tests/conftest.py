@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services.bpi_orders import store as bpi_store
 from app.services.orders import store
+from app.services.standardized_bpi_orders import store as standardized_bpi_store
 
 
 def future_date(days=60):
@@ -27,9 +28,11 @@ def client():
 def _reset_store():
     store.clear()
     bpi_store.clear()
+    standardized_bpi_store.clear()
     yield
     store.clear()
     bpi_store.clear()
+    standardized_bpi_store.clear()
 
 
 def search_body(ori="CGK", dest="DPS", dep_date=None, adult=1, child=0, infant=0, **extra):
