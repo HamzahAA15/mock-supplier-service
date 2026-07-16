@@ -39,7 +39,7 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
 12. **Encrypted order body + response (order only):** the client encrypts the
     `/orderCrossSecondBaggage` request body with **AES/CBC/PKCS5Padding** and **standard base64**;
     the whole HTTP body is that base64 string. Key = `B@4p6aay&)*^M0^r` (16 bytes, AES-128),
-    **IV = the key bytes** (`IvParameterSpec(key.getBytes())`). The server decrypts, then parses JSON.
+    **IV = 16 zero bytes** (`new IvParameterSpec(new byte[16])`). The server decrypts, then parses JSON.
     **Accept-both:** if decryption fails, the body is treated as plaintext JSON (keeps tests / manual
     curl working); unparseable → `{"auxiliaryOrderNo": null, "status": "1", "msg": "invalid request body"}`.
     **Symmetric response:** when the request was encrypted, the **response body is encrypted too**
@@ -48,7 +48,8 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
     gets a plaintext JSON response. Only this endpoint is encrypted; `/secondBaggage` and
     `/ancillaryOrderDetail` stay plaintext. Logic in `app/services/crypto.py` (key overridable via
     `SECOND_BAGGAGE_AES_KEY`). Known-answer vector for Java cross-check:
-    `encrypt("hello world") == "b4veAzBq4t5O8dJ+h1Q21Q=="`.
+    `encrypt("hello world") == "h9+4UBi8DOk5ZWeuiJxa+A=="` (AES-128-CBC, key `B@4p6aay&)*^M0^r`,
+    zero IV, PKCS5, standard base64).
     - **Transit tolerance:** the decoder repairs base64 commonly mangled in an HTTP body before
       decrypting — `+`→space (from `application/x-www-form-urlencoded`), base64url (`-`/`_`), stray
       whitespace / MIME-chunk newlines, and missing padding. **Client guidance:** send the encrypted

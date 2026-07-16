@@ -6,7 +6,7 @@ Base64.encodeBase64). PKCS5 == PKCS7 for AES's 16-byte block.
 
 Per the agreed integration contract:
 - key = the 16-byte shared key below (AES-128)
-- IV  = the key bytes (Java `IvParameterSpec(key.getBytes())`)
+- IV  = 16 zero bytes (Java `new IvParameterSpec(new byte[16])`)
 - base64 = standard alphabet
 
 The key is a shared symmetric integration key for the mock; override via the
@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 _KEY = os.environ.get("SECOND_BAGGAGE_AES_KEY", "B@4p6aay&)*^M0^r").encode("utf-8")
-_IV = _KEY  # IvParameterSpec(key.getBytes()) — key reused as IV
+_IV = b"\x00" * 16  # IvParameterSpec(new byte[16]) — all-zero IV
 _BLOCK_BITS = 128
 
 

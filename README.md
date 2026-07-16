@@ -10,7 +10,7 @@ It also mocks the **Second Baggage — TSY BPI** flow
 `status:"0"`-envelope contract with no pay step (a successful order is already paid).
 Ordering the routes `SIN→KUL` or `SIN→CGK` fails with HTTP 500 (not eligible for second baggage).
 These three paths and their logic are the **TSY BPI** variant.
-The `/orderCrossSecondBaggage` body is **AES/CBC-encrypted** (key = IV = `B@4p6aay&)*^M0^r`,
+The `/orderCrossSecondBaggage` body is **AES/CBC-encrypted** (key `B@4p6aay&)*^M0^r`, **zero IV**,
 standard base64) — the server decrypts it, and also accepts plaintext JSON as a fallback. When the
 request is encrypted the **response is encrypted too** (symmetric, all outcomes incl. errors/500);
 plaintext in → plaintext out. See [BPI_DESIGN.md](BPI_DESIGN.md) §1.12.
