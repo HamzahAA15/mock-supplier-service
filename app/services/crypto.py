@@ -32,12 +32,29 @@ def encrypt_aes_cbc(plaintext: str) -> str:
     return base64.b64encode(ct).decode("ascii")
 
 
+def _normalize_b64(s: str) -> str:
+    """Repair base64 that got mangled in transit before decoding.
+
+    The most common corruption for base64 carried in an HTTP body is
+    `+` -> ` ` (space), which happens when the body is treated as
+    application/x-www-form-urlencoded. We also tolerate base64url (`-`/`_`),
+    stray whitespace / MIME chunk newlines, and missing padding.
+    """
+    s = s.strip()
+    s = s.replace(" ", "+")                       # undo form-encoding '+' -> space
+    s = "".join(s.split())                        # drop remaining whitespace / newlines
+    s = s.replace("-", "+").replace("_", "/")     # accept base64url as well
+    s += "=" * (-len(s) % 4)                      # restore padding
+    return s
+
+
 def decrypt_aes_cbc(b64_ciphertext: str) -> str:
     """Reverse the client's encryption: base64 -> AES-CBC decrypt -> unpad -> UTF-8.
 
-    Raises on any malformed input (bad base64, wrong block size, bad padding).
+    Normalizes common in-transit base64 corruption first (see _normalize_b64).
+    Raises on genuinely malformed input (wrong block size, bad padding).
     """
-    ct = base64.b64decode(b64_ciphertext, validate=True)
+    ct = base64.b64decode(_normalize_b64(b64_ciphertext))
     decryptor = Cipher(algorithms.AES(_KEY), modes.CBC(_IV)).decryptor()
     padded = decryptor.update(ct) + decryptor.finalize()
     unpadder = padding.PKCS7(_BLOCK_BITS).unpadder()
