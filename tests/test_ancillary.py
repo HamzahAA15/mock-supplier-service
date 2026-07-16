@@ -6,6 +6,7 @@ QZ_KEY = encode_offer_key("QZ", "CGK", "DPS", "2026-07-10")
 AK_KEY = encode_offer_key("AK", "CGK", "DPS", "2026-07-10")
 SQ_KEY = encode_offer_key("SQ", "CGK", "DPS", "2026-07-10")
 JL_KEY = encode_offer_key("JL", "CGK", "DPS", "2026-07-10")
+MM_KEY = encode_offer_key("MM", "CGK", "DPS", "2026-07-10")
 
 
 def get_offers(client, key):
@@ -37,6 +38,14 @@ def test_ak_options_above_fba_0(client):
     offers = get_offers(client, AK_KEY)
     assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
     assert offers[0]["ancillaryKey"] == "1_0_0$AK400$PA5"
+
+
+def test_mm_options_above_fba_0(client):
+    offers = get_offers(client, MM_KEY)
+    assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
+    assert [o["price"] for o in offers] == [7.5, 15.0, 22.5]
+    assert offers[0]["ancillaryKey"] == "1_0_0$MM700$PA5"
+    assert all(o["flightNumber"] == "MM700" for o in offers)
 
 
 def test_sq_options_above_fba_20(client):

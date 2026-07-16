@@ -74,3 +74,21 @@ def test_tsy_and_standardized_versions_coexist(client):
     std = client.post(BASE_SEARCH_PATH, json=search_body()).json()
     assert tsy["status"] == "0"  # tsy string envelope
     assert std["code"] == 0      # standardized int envelope
+
+
+def test_mm_segment_flows_through(client):
+    # Standardized BPI is carrier-agnostic: an MM segment searches, orders, and
+    # its carrier is reconstructed in the order RS.
+    seg_mm = segment(marketing="MM", flight_no="MM700", dep="CGK", arr="DPS")
+    search_rs = client.post(BASE_SEARCH_PATH, json=search_body(
+        routes=[{"tripType": 1, "segments": [seg_mm]}], passengers=[PAX_1])).json()
+    assert search_rs["code"] == 0
+    key = offer_for(search_rs, 0, 20)["ancillaryKey"]
+    order_rs = client.post(ORDER_PATH, json=order_body(
+        "MM-STD-1", passengers=[PAX_1],
+        selected=[{"passengerId": 1, "ancillaryKey": key}])).json()
+    assert order_rs["code"] == 0 and order_rs["data"]["orderStatus"] == "ISSUING"
+    seg0 = order_rs["data"]["selectedAncillary"][0]["segments"][0]
+    assert seg0["marketingCarrier"] == "MM" and seg0["flightNumber"] == "MM700"
+    detail = client.get("{}/{}".format(ORDER_PATH, "MM-STD-1")).json()
+    assert detail["data"]["orderStatus"] == "ISSUED"
