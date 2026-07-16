@@ -831,14 +831,15 @@
                   "  return d.ancillaries[o.freeAncillaryRefs[0].ancillaryIndex].ancillaryCode;",
                   "}",
                   "",
-                  "pm.test(\"all 6 airlines returned {AK,GA,JL,JT,QZ,SQ}\", function(){",
+                  "pm.test(\"all 7 airlines returned {AK,GA,JL,JT,MM,QZ,SQ}\", function(){",
                   "  pm.expect(d.segments.map(function(s){return s.marketingCarrier;}).sort())",
-                  "    .to.eql([\"AK\",\"GA\",\"JL\",\"JT\",\"QZ\",\"SQ\"]);",
+                  "    .to.eql([\"AK\",\"GA\",\"JL\",\"JT\",\"MM\",\"QZ\",\"SQ\"]);",
                   "});",
-                  "pm.test(\"FBA per airline: JT/QZ/AK 0, GA/SQ 20, JL 15\", function(){",
+                  "pm.test(\"FBA per airline: JT/QZ/AK/MM 0, GA/SQ 20, JL 15\", function(){",
                   "  pm.expect(fbaFor(\"JT\")).to.eql(0); pm.expect(fbaFor(\"QZ\")).to.eql(0); pm.expect(fbaFor(\"AK\")).to.eql(0);",
                   "  pm.expect(fbaFor(\"GA\")).to.eql(20); pm.expect(fbaFor(\"SQ\")).to.eql(20);",
                   "  pm.expect(fbaFor(\"JL\")).to.eql(15);",
+                  "  pm.expect(fbaFor(\"MM\")).to.eql(0);",
                   "});"
                 ]
               }

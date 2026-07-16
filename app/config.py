@@ -85,8 +85,18 @@ AIRLINES = {
         "fare": 110.00,
         "tax": 14.00,
     },
+    "MM": {
+        "flight_number": "MM700",
+        "dep_time": "10:00:00",
+        "arr_time": "12:00:00",
+        "duration": 120,
+        "aircraft": "A320",
+        "fba_kg": 0,
+        "fare": 65.00,
+        "tax": 9.00,
+    },
 }
 
-AIRLINE_ORDER = ["JT", "GA", "QZ", "AK", "SQ", "JL"]
+AIRLINE_ORDER = ["JT", "GA", "QZ", "AK", "SQ", "JL", "MM"]
 
 FLIGHT_TO_AIRLINE = {v["flight_number"]: k for k, v in AIRLINES.items()}

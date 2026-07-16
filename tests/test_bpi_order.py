@@ -1,11 +1,23 @@
 from tests.bpi_helpers import (
-    SEG_KUL_SIN, SEG_SIN_CGK, SEG_SIN_KUL, SEG_VJ,
+    SEG_KUL_SIN, SEG_MM, SEG_SIN_CGK, SEG_SIN_KUL, SEG_VJ,
     order_body, pax_aux, product_item_for, search_body,
 )
 
 
 def _search(client, segments=None):
     return client.post("/secondBaggage", json=search_body(segments=segments)).json()
+
+
+def test_order_mm_segment(client):
+    # TSY BPI is carrier-agnostic: an MM segment flows through search -> order -> orderDetail.
+    rs = _search(client, segments=[SEG_MM])
+    item = product_item_for(rs, 0, 30)
+    res = client.post("/orderCrossSecondBaggage",
+                      json=order_body("MM-BPI-1", [pax_aux(SEG_MM, item)])).json()
+    assert res["status"] == "0" and res["auxiliaryOrderNo"] == "MM-BPI-1"
+    det = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "MM-BPI-1"}).json()
+    assert det["data"]["orderStatus"] == "PURCHASED"
+    assert det["data"]["segments"][0]["flightNumber"] == "MM700"
 
 
 def test_order_happy_path(client):
