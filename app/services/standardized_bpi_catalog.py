@@ -21,13 +21,24 @@ from app.services.bpi_catalog import (  # shared with tsy-bpi
     BAGGAGE_TIERS,
     BLOCKED_SECOND_BAGGAGE_ROUTES,
     CURRENCY,
+    PIECE_CARRIERS,
     TIER_WEIGHTS,
 )
 
 KEY_PREFIX = "SBPI"
 ANCILLARY_TYPE_BAGGAGE = "CHECKEDBAGGAGE"
-UNIT_OF_MEASUREMENT = "WEIGHT"
+UNIT_OF_MEASUREMENT = "WEIGHT"       # default (weight-based carriers)
+UNIT_OF_MEASUREMENT_PIECE = "PIECE"  # PIECE_CARRIERS (e.g. MM)
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def unit_of_measurement(segments: Optional[List[Dict[str, Any]]]) -> str:
+    """PIECE when any segment's marketingCarrier is a PIECE carrier (e.g. MM),
+    else WEIGHT."""
+    for seg in segments or []:
+        if (seg.get("marketingCarrier") or "") in PIECE_CARRIERS:
+            return UNIT_OF_MEASUREMENT_PIECE
+    return UNIT_OF_MEASUREMENT
 
 # Segment fields encoded into the ancillaryKey, in order. Enough to fully
 # reconstruct the standardized Segments Element in order/orderDetail RS.
@@ -110,6 +121,7 @@ def is_departure_past(seg: Dict[str, Any], now: Optional[datetime] = None) -> bo
 def build_ancillary_offers(trip_type: Any, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The 9 shared tiers as standardized Ancillary Offer Elements. One key per
     (route segment-chain, tier); identical across passengers by design."""
+    unit = unit_of_measurement(segments)  # PIECE for MM, else WEIGHT
     offers = []
     for kg in TIER_WEIGHTS:
         offers.append({
@@ -117,7 +129,7 @@ def build_ancillary_offers(trip_type: Any, segments: List[Dict[str, Any]]) -> Li
             "ancillaryType": ANCILLARY_TYPE_BAGGAGE,
             "ancillaryCode": kg,
             "ancillaryPiece": 1,
-            "unitOfMeasurement": UNIT_OF_MEASUREMENT,
+            "unitOfMeasurement": unit,
             "price": BAGGAGE_TIERS[kg],
         })
     return offers

@@ -75,6 +75,10 @@ orderDetail ({auxiliaryOrderNo}) ──► orderStatus: PURCHASED
 9 tiers, `productType 1`, `saleType 2`, `baggagePieces 1`, `isAllWeight true`, `currency USD`,
 refundRule all-false with `"*"` rules:
 
+> **Piece-based carriers:** for segments whose carrier is in `bpi_catalog.PIECE_CARRIERS`
+> (currently `MM`), the baggage is piece-based → `isAllWeight: false` (weight-based carriers
+> stay `true`). Same tiers/prices; only the flag differs.
+
 | kg | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 |
 |----|----|----|----|----|----|----|----|----|-----|
 | USD | 52.14 | 76.84 | 103.18 | 256.30 | 307.33 | 358.38 | 430.27 | 483.49 | 536.74 |

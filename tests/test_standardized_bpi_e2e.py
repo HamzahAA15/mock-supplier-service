@@ -83,12 +83,15 @@ def test_mm_segment_flows_through(client):
     search_rs = client.post(BASE_SEARCH_PATH, json=search_body(
         routes=[{"tripType": 1, "segments": [seg_mm]}], passengers=[PAX_1])).json()
     assert search_rs["code"] == 0
-    key = offer_for(search_rs, 0, 20)["ancillaryKey"]
+    offer = offer_for(search_rs, 0, 20)
+    # MM baggage is piece-based -> unitOfMeasurement PIECE (WEIGHT for other carriers).
+    assert offer["unitOfMeasurement"] == "PIECE"
     order_rs = client.post(ORDER_PATH, json=order_body(
         "MM-STD-1", passengers=[PAX_1],
-        selected=[{"passengerId": 1, "ancillaryKey": key}])).json()
+        selected=[{"passengerId": 1, "ancillaryKey": offer["ancillaryKey"]}])).json()
     assert order_rs["code"] == 0 and order_rs["data"]["orderStatus"] == "ISSUING"
     seg0 = order_rs["data"]["selectedAncillary"][0]["segments"][0]
     assert seg0["marketingCarrier"] == "MM" and seg0["flightNumber"] == "MM700"
     detail = client.get("{}/{}".format(ORDER_PATH, "MM-STD-1")).json()
     assert detail["data"]["orderStatus"] == "ISSUED"
+    assert detail["data"]["selectedAncillary"][0]["unitOfMeasurement"] == "PIECE"

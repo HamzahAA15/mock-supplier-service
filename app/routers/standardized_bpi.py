@@ -170,7 +170,7 @@ def standardized_bpi_order_detail(ancillary_order_no: str):
         return err(CODE_INVALID_ORDER_NO, MSG_INVALID_ORDER_NO)
 
     detail_selected = [
-        dict(item, unitOfMeasurement=catalog.UNIT_OF_MEASUREMENT)
+        dict(item, unitOfMeasurement=catalog.unit_of_measurement(item.get("segments")))
         for item in record["selectedAncillary"]
     ]
     return ok({
