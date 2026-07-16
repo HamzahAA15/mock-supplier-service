@@ -25,6 +25,11 @@ BAGGAGE_TIERS = {
 }
 TIER_WEIGHTS = sorted(BAGGAGE_TIERS)  # ascending 20..100
 
+# Carriers whose second-baggage allowance is expressed per PIECE rather than by
+# weight. TSY BPI signals this via baggage.isAllWeight=False; Standardized BPI via
+# unitOfMeasurement="PIECE".
+PIECE_CARRIERS = {"MM"}
+
 # Routes not eligible for second baggage at order time (directional dep->arr).
 # Ordering these fails the order with HTTP 500 (see routers/bpi.py, BPI_DESIGN.md).
 BLOCKED_SECOND_BAGGAGE_ROUTES = {("SIN", "KUL"), ("SIN", "CGK")}
@@ -80,7 +85,9 @@ def build_product_items(seg: Dict[str, Any]) -> List[Dict[str, Any]]:
             "basePrice": BAGGAGE_TIERS[kg],
             "currency": CURRENCY,
             "supportOverWeight": False,
-            "baggage": {"baggagePieces": 1, "baggageAllowance": kg, "isAllWeight": True},
+            "baggage": {"baggagePieces": 1, "baggageAllowance": kg,
+                        # PIECE-based carriers (e.g. MM) -> isAllWeight False.
+                        "isAllWeight": (seg.get("carrier") or "") not in PIECE_CARRIERS},
             "refundRule": _refund_rule(),
             "dataSource": None,
         })

@@ -1,6 +1,6 @@
 import base64
 
-from tests.bpi_helpers import SEG_GA, SEG_VJ, search_body
+from tests.bpi_helpers import SEG_GA, SEG_MM, SEG_VJ, search_body
 
 TIER_WEIGHTS = [20, 30, 40, 50, 60, 70, 80, 90, 100]
 TIER_PRICES = {20: 52.14, 30: 76.84, 40: 103.18, 50: 256.30, 60: 307.33,
@@ -72,3 +72,12 @@ def test_passenger_ignored(client):
         body = client.post("/secondBaggage", json=search_body(passenger=passenger)).json()
         assert body["status"] == "0"
         assert len(body["products"][0]["productItems"]) == 9
+
+
+def test_mm_baggage_is_piece_based(client):
+    # MM's second baggage is piece-based: baggage.isAllWeight is False for every tier
+    # (vs True for weight-based carriers like VJ).
+    mm = client.post("/secondBaggage", json=search_body(segments=[SEG_MM])).json()
+    assert all(i["baggage"]["isAllWeight"] is False for i in mm["products"][0]["productItems"])
+    vj = client.post("/secondBaggage", json=search_body(segments=[SEG_VJ])).json()
+    assert all(i["baggage"]["isAllWeight"] is True for i in vj["products"][0]["productItems"])

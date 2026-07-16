@@ -95,6 +95,10 @@ key     = base64url(compact JSON of payload)   # one key per (route segment-chai
 
 Each offer: `{ancillaryKey, ancillaryType: "CHECKEDBAGGAGE", ancillaryCode: <kg>, ancillaryPiece: 1, unitOfMeasurement: "WEIGHT", price}`.
 
+> **Piece-based carriers:** for a route whose `marketingCarrier` is in `bpi_catalog.PIECE_CARRIERS`
+> (currently `MM`), `unitOfMeasurement` is `"PIECE"` instead of `"WEIGHT"` — in the search offers and,
+> per item (derived from the reconstructed segments), in the orderDetail `selectedAncillary`.
+
 ### 6.2 `POST /ancillary/v1/orders`
 
 `StandardizedBpiOrderRequest`: `ancillaryOrderNo`, `isCross`, `passengers[]`, `selectedAncillary[]`, `ticketingFunnel` (optional).
