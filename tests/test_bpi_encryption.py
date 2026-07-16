@@ -90,3 +90,29 @@ def test_wire_format_matches_java_contract():
     import base64
     base64.b64decode(ciphertext, validate=True)
     assert json.loads(crypto.decrypt_aes_cbc(ciphertext)) == body
+
+
+def test_decrypt_tolerates_transit_corruption():
+    # base64 in an HTTP body is commonly mangled: '+' -> space (form-encoding),
+    # base64url alphabet, and MIME chunk newlines. All must still decrypt.
+    pt = '{"ancillaryOrderNo":"105608238-0-0","isCross":1,"passengerAuxes":[]}'
+    ct = crypto.encrypt_aes_cbc(pt)
+    assert "+" in ct  # this fixture ciphertext actually contains '+'
+    assert crypto.decrypt_aes_cbc(ct.replace("+", " ")) == pt          # form-encoding
+    assert crypto.decrypt_aes_cbc(ct.replace("+", "-").replace("/", "_").rstrip("=")) == pt  # base64url
+    assert crypto.decrypt_aes_cbc("\n".join(ct[i:i + 64] for i in range(0, len(ct), 64))) == pt  # chunked
+
+
+def test_endpoint_accepts_form_mangled_encrypted_body(client):
+    # An encrypted order whose '+' were turned into spaces in transit still works.
+    rs = _search(client)
+    item = product_item_for(rs, 0, 40)
+    from tests.bpi_helpers import encrypt_order_body
+    ciphertext = encrypt_order_body(order_body("ENC-FORM", [pax_aux(SEG_VJ, item)]))
+    mangled = ciphertext.replace("+", " ")  # simulate application/x-www-form-urlencoded
+    res = client.post("/orderCrossSecondBaggage", content=mangled,
+                      headers={"Content-Type": "text/plain"})
+    assert res.status_code == 200
+    assert decrypt_order_response(res)["status"] == "0"
+    assert client.post("/ancillaryOrderDetail",
+                       json={"auxiliaryOrderNo": "ENC-FORM"}).json()["data"]["orderStatus"] == "PURCHASED"

@@ -49,6 +49,12 @@ existing mock supplier FastAPI app. Contract source: `bpi-rq-rs/tsy-bpi/*.json`.
     `/ancillaryOrderDetail` stay plaintext. Logic in `app/services/crypto.py` (key overridable via
     `SECOND_BAGGAGE_AES_KEY`). Known-answer vector for Java cross-check:
     `encrypt("hello world") == "b4veAzBq4t5O8dJ+h1Q21Q=="`.
+    - **Transit tolerance:** the decoder repairs base64 commonly mangled in an HTTP body before
+      decrypting — `+`→space (from `application/x-www-form-urlencoded`), base64url (`-`/`_`), stray
+      whitespace / MIME-chunk newlines, and missing padding. **Client guidance:** send the encrypted
+      body as a raw string with `Content-Type: text/plain` (not form-encoded) so `+` is preserved.
+      A payload whose decoded length is not a multiple of 16 is genuinely corrupt/truncated and is
+      rejected as `invalid request body`.
 8. **Auth:** none, same as existing v1 endpoints.
 9. **Search passengers:** the `passenger` array may be missing, empty, or have empty-string
    fields; search ignores it entirely — the response depends only on `segments`.
