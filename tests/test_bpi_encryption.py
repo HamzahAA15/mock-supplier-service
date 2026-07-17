@@ -38,7 +38,7 @@ def test_encrypted_order_happy_path(client):
     # Order really landed (decrypted payload was used).
     det = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "ENC-1"}).json()
     assert det["data"]["orderStatus"] == "PURCHASED"
-    assert det["data"]["totalPrice"] == 12.00
+    assert det["data"]["totalPrice"] == 6.00
 
 
 def test_plaintext_still_accepted_and_plaintext_response(client):

@@ -43,7 +43,7 @@ def test_e2e_booking_chain(client):
     }).json()
     assert order["code"] == 0
     order_id = order["data"]["orderId"]
-    expected_total = round(2 * (15.0 + 3.0) + 12.5, 2)
+    expected_total = round(2 * (7.0 + 2.0) + 6.25, 2)
     assert order["data"]["total"] == expected_total
     assert order["data"]["offers"][0]["offerKey"] == offer_key  # identity holds at order
 

@@ -82,7 +82,7 @@ refundRule all-false with `"*"` rules:
 
 | kg | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 |
 |----|----|----|----|----|----|----|----|----|-----|
-| USD | 2.00 | 4.00 | 6.00 | 8.00 | 10.00 | 12.00 | 14.00 | 16.00 | 18.00 |
+| USD | 1.00 | 2.00 | 3.00 | 4.00 | 5.00 | 6.00 | 7.00 | 8.00 | 9.00 |
 
 Returned for **any** segment (any carrier/route/date), one `products[]` entry per RQ segment,
 echoing the segment enriched with the static extra fields seen in the sample

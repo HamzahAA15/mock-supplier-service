@@ -20,7 +20,7 @@ def test_order_detail_purchased(client):
     assert data["orderStatus"] == "PURCHASED"   # always, immediately
     assert data["currency"] == "USD"
     assert data["isCross"] == 1
-    assert data["totalPrice"] == 2.00
+    assert data["totalPrice"] == 1.00
 
 
 def test_segment_and_passenger_ancillary_linkage(client):
@@ -46,7 +46,7 @@ def test_multi_passenger_totals(client):
     body = order_body("MULTI", [pax_aux(SEG_VJ, item20), pax_aux(SEG_VJ, item30, info=pax2)])
     client.post("/orderCrossSecondBaggage", json=body)
     data = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "MULTI"}).json()["data"]
-    assert data["totalPrice"] == round(2.00 + 4.00, 2)
+    assert data["totalPrice"] == round(1.00 + 2.00, 2)
     assert len(data["passengerAncillaries"]) == 2
     assert len(data["segments"]) == 1  # same segment deduped
     # both ancillaries reference the single segment id
