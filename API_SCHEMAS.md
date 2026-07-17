@@ -198,8 +198,8 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
 | 1 | GA | `GA\|CGK\|DPS\|2026-07-10\|BASIC` | 1 | 7.00 | 2.00 | 1 (20) |
 | 2 | QZ | `QZ\|CGK\|DPS\|2026-07-10\|BASIC` | 2 | 4.00 | 0.80 | 2 (0) |
 
-The full v1 inventory has **7 airlines**. Omitting `airlineIds` returns one offer per airline
-(order: JT, GA, QZ, AK, SQ, JL, MM); the example above filters to the first three. The rest:
+The full v1 inventory has **8 airlines**. Omitting `airlineIds` returns one offer per airline
+(order: JT, GA, QZ, AK, SQ, JL, MM, OD); the example above filters to the first three. The rest:
 
 | index | airline | offerKey (decoded) | FARE | TAX | FBA kg | ancillary ladder (kg) |
 |---|---|---|---|---|---|---|
@@ -207,8 +207,9 @@ The full v1 inventory has **7 airlines**. Omitting `airlineIds` returns one offe
 | 4 | SQ | `SQ\|CGK\|DPS\|2026-07-10\|BASIC` | 9.00 | 2.50 | 20 | 25, 30, 35 |
 | 5 | JL | `JL\|CGK\|DPS\|2026-07-10\|BASIC` | 8.00 | 1.80 | 15 | 20, 25, 30 |
 | 6 | MM | `MM\|CGK\|DPS\|2026-07-10\|BASIC` | 6.00 | 1.20 | 0  | 5, 10, 15 |
+| 7 | OD | `OD\|CGK\|DPS\|2026-07-10\|BASIC` | 2.00 | 0.40 | 0  | 5, 10, 15 |
 
-`cheapestOption` is on the lowest fare among the *returned* offers — AK (3.00) when all seven are returned.
+`cheapestOption` is on the lowest fare among the *returned* offers — OD (2.00) when all eight are returned.
 
 **Error response — backdate (req #3), `depDate < today`**
 ```json

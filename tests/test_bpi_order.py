@@ -1,5 +1,5 @@
 from tests.bpi_helpers import (
-    SEG_KUL_SIN, SEG_MM, SEG_SIN_CGK, SEG_SIN_KUL, SEG_VJ,
+    SEG_KUL_SIN, SEG_MM, SEG_OD, SEG_SIN_CGK, SEG_SIN_KUL, SEG_VJ,
     order_body, pax_aux, product_item_for, search_body,
 )
 
@@ -18,6 +18,19 @@ def test_order_mm_segment(client):
     det = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "MM-BPI-1"}).json()
     assert det["data"]["orderStatus"] == "PURCHASED"
     assert det["data"]["segments"][0]["flightNumber"] == "MM700"
+
+
+def test_order_od_segment_is_weight_based(client):
+    # OD is a normal weight-based carrier: search productItems keep isAllWeight True.
+    rs = _search(client, segments=[SEG_OD])
+    assert all(i["baggage"]["isAllWeight"] is True for i in rs["products"][0]["productItems"])
+    item = product_item_for(rs, 0, 30)
+    res = client.post("/orderCrossSecondBaggage",
+                      json=order_body("OD-BPI-1", [pax_aux(SEG_OD, item)])).json()
+    assert res["status"] == "0" and res["auxiliaryOrderNo"] == "OD-BPI-1"
+    det = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "OD-BPI-1"}).json()
+    assert det["data"]["orderStatus"] == "PURCHASED"
+    assert det["data"]["segments"][0]["flightNumber"] == "OD800"
 
 
 def test_order_happy_path(client):
