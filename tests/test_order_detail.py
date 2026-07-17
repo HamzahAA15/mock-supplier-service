@@ -12,7 +12,7 @@ def test_unpaid_order_detail(client):
     assert info["orderId"] == order_id
     assert info["status"] == "UNPAID"
     assert info["payTime"] == ""
-    assert info["amount"] == "107.00"
+    assert info["amount"] == "9.00"
     pnr = res["data"]["pnrs"][0]
     assert len(pnr["pnr"]) == 6 and pnr["pnr"].isalnum()  # PNR minted at order time
     assert pnr["providerPnr"] == ""

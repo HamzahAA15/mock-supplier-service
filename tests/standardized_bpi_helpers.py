@@ -5,8 +5,8 @@ BASE_SEARCH_PATH = "/ancillary/v1/baggage/search"
 ORDER_PATH = "/ancillary/v1/orders"
 
 TIER_WEIGHTS = [20, 30, 40, 50, 60, 70, 80, 90, 100]
-TIER_PRICES = {20: 52.14, 30: 76.84, 40: 103.18, 50: 256.30, 60: 307.33,
-               70: 358.38, 80: 430.27, 90: 483.49, 100: 536.74}
+TIER_PRICES = {20: 1.00, 30: 2.00, 40: 3.00, 50: 4.00, 60: 5.00,
+               70: 6.00, 80: 7.00, 90: 8.00, 100: 9.00}
 
 
 def future_dt(days=60, hour=8):

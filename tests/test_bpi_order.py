@@ -77,7 +77,7 @@ def test_idempotent_reorder(client):
     assert r1["status"] == "0" and r2["status"] == "0"
     # Latest wins: orderDetail reflects the 50kg re-order.
     det = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": "DUP"}).json()
-    assert det["data"]["totalPrice"] == 256.30
+    assert det["data"]["totalPrice"] == 4.00
     assert det["data"]["passengerAncillaries"][0]["baggageWeight"] == "50"
 
 

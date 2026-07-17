@@ -19,7 +19,7 @@ def test_order_happy_path(client):
     data = order_rs["data"]
     assert data["ancillaryOrderNo"] == "TVLK-BPI-100"
     assert data["orderStatus"] == "ISSUING"
-    assert data["total"] == 52.14 and data["currency"] == "USD"
+    assert data["total"] == 1.00 and data["currency"] == "USD"
     assert data["isCross"] is True
     assert data["createdTime"] == data["updatedTime"]
     assert data["passengers"][0]["passengerId"] == 1
@@ -27,7 +27,7 @@ def test_order_happy_path(client):
     assert item["passengerId"] == 1
     assert item["ancillaryType"] == "CHECKEDBAGGAGE"
     assert item["ancillaryCode"] == 20 and item["ancillaryPiece"] == 1
-    assert item["price"] == 52.14
+    assert item["price"] == 1.00
 
 
 def test_order_reconstructs_segments_from_key(client):
@@ -52,7 +52,7 @@ def test_order_multi_pax_totals(client):
     body = client.post(ORDER_PATH, json=order_body(
         "TVLK-BPI-200", passengers=passengers, selected=selected)).json()
     assert body["code"] == 0
-    assert body["data"]["total"] == round(52.14 + 76.84, 2)
+    assert body["data"]["total"] == round(1.00 + 2.00, 2)
     assert len(body["data"]["selectedAncillary"]) == 2
 
 

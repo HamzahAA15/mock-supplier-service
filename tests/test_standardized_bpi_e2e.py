@@ -35,7 +35,7 @@ def test_full_flow_roundtrip_multi_pax_multi_route(client):
                   {"passengerId": 2, "ancillaryKey": key_in}])).json()
     assert order_rs["code"] == 0
     assert order_rs["data"]["orderStatus"] == "ISSUING"
-    assert order_rs["data"]["total"] == round(52.14 + 76.84, 2)
+    assert order_rs["data"]["total"] == round(1.00 + 2.00, 2)
 
     # Segments in the order RS reconstruct the search RQ segments.
     segs = order_rs["data"]["selectedAncillary"][0]["segments"]

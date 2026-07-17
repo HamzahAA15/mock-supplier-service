@@ -20,7 +20,7 @@ WALLET_RECEIVER_ACCOUNTS = {
 PAX_FARE_MULTIPLIER = {"ADT": 1.0, "CHD": 0.75, "INF": 0.10}
 
 # Checked-baggage ancillary price rule: USD per kg.
-ANCILLARY_PRICE_PER_KG = 1.5
+ANCILLARY_PRICE_PER_KG = 0.25
 # Number of CHECKEDBAGGAGE upsell options, in +5 kg steps above FBA.
 ANCILLARY_OPTION_STEPS = (5, 10, 15)
 
@@ -32,8 +32,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "B739",
         "fba_kg": 0,
-        "fare": 60.00,
-        "tax": 8.00,
+        "fare": 5.00,
+        "tax": 1.00,
     },
     "GA": {
         "flight_number": "GA200",
@@ -42,8 +42,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "B738",
         "fba_kg": 20,
-        "fare": 95.00,
-        "tax": 12.00,
+        "fare": 7.00,
+        "tax": 2.00,
     },
     "QZ": {
         "flight_number": "QZ300",
@@ -52,8 +52,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "A320",
         "fba_kg": 0,
-        "fare": 55.00,
-        "tax": 7.00,
+        "fare": 4.00,
+        "tax": 0.80,
     },
     "AK": {
         "flight_number": "AK400",
@@ -62,8 +62,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "A320",
         "fba_kg": 0,
-        "fare": 50.00,
-        "tax": 6.00,
+        "fare": 3.00,
+        "tax": 0.50,
     },
     "SQ": {
         "flight_number": "SQ500",
@@ -72,8 +72,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "B77W",
         "fba_kg": 20,
-        "fare": 120.00,
-        "tax": 15.00,
+        "fare": 9.00,
+        "tax": 2.50,
     },
     "JL": {
         "flight_number": "JL600",
@@ -82,8 +82,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "B788",
         "fba_kg": 15,
-        "fare": 110.00,
-        "tax": 14.00,
+        "fare": 8.00,
+        "tax": 1.80,
     },
     "MM": {
         "flight_number": "MM700",
@@ -92,8 +92,8 @@ AIRLINES = {
         "duration": 120,
         "aircraft": "A320",
         "fba_kg": 0,
-        "fare": 65.00,
-        "tax": 9.00,
+        "fare": 6.00,
+        "tax": 1.20,
     },
 }
 
