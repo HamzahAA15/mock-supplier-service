@@ -10,7 +10,7 @@ def test_bpi_chain(client):
 
     # pick the 70kg tier
     tier = next(i for i in items if i["baggage"]["baggageAllowance"] == 70)
-    assert tier["basePrice"] == 358.38
+    assert tier["basePrice"] == 12.00
     pid = tier["productItemId"]
 
     # 2. order using the exact productItem from search (round-trip)
@@ -25,7 +25,7 @@ def test_bpi_chain(client):
     assert det["status"] == "0"
     data = det["data"]
     assert data["orderStatus"] == "PURCHASED"
-    assert data["totalPrice"] == 358.38
+    assert data["totalPrice"] == 12.00
     assert data["ancillaryOrderNo"] == aux_no
     pa = data["passengerAncillaries"][0]
     assert pa["baggageWeight"] == "70"

@@ -13,15 +13,15 @@ CURRENCY = "USD"
 
 # 9 fixed baggage tiers: weight (kg) -> base price (USD). From the tsy-bpi sample.
 BAGGAGE_TIERS = {
-    20: 52.14,
-    30: 76.84,
-    40: 103.18,
-    50: 256.30,
-    60: 307.33,
-    70: 358.38,
-    80: 430.27,
-    90: 483.49,
-    100: 536.74,
+    20: 2.00,
+    30: 4.00,
+    40: 6.00,
+    50: 8.00,
+    60: 10.00,
+    70: 12.00,
+    80: 14.00,
+    90: 16.00,
+    100: 18.00,
 }
 TIER_WEIGHTS = sorted(BAGGAGE_TIERS)  # ascending 20..100
 

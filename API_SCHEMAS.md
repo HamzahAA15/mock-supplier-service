@@ -83,8 +83,8 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
         "cheapestOption": false,
         "flightRefs": [{ "flightIndex": 0 }],
         "charges": [
-          { "passengerType": "ADT", "chargeType": "FARE", "price": 60.00 },
-          { "passengerType": "ADT", "chargeType": "TAX",  "price": 8.00 }
+          { "passengerType": "ADT", "chargeType": "FARE", "price": 12.00 },
+          { "passengerType": "ADT", "chargeType": "TAX",  "price": 2.00 }
         ],
         "freeAncillaryRefs": [
           { "ancillaryIndex": 0, "passengerType": "ADT", "segmentIndex": 0 }
@@ -99,8 +99,8 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
         "cheapestOption": false,
         "flightRefs": [{ "flightIndex": 1 }],
         "charges": [
-          { "passengerType": "ADT", "chargeType": "FARE", "price": 95.00 },
-          { "passengerType": "ADT", "chargeType": "TAX",  "price": 12.00 }
+          { "passengerType": "ADT", "chargeType": "FARE", "price": 15.00 },
+          { "passengerType": "ADT", "chargeType": "TAX",  "price": 3.00 }
         ],
         "freeAncillaryRefs": [
           { "ancillaryIndex": 1, "passengerType": "ADT", "segmentIndex": 1 }
@@ -115,8 +115,8 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
         "cheapestOption": true,
         "flightRefs": [{ "flightIndex": 2 }],
         "charges": [
-          { "passengerType": "ADT", "chargeType": "FARE", "price": 55.00 },
-          { "passengerType": "ADT", "chargeType": "TAX",  "price": 7.00 }
+          { "passengerType": "ADT", "chargeType": "FARE", "price": 11.00 },
+          { "passengerType": "ADT", "chargeType": "TAX",  "price": 2.50 }
         ],
         "freeAncillaryRefs": [
           { "ancillaryIndex": 2, "passengerType": "ADT", "segmentIndex": 2 }
@@ -194,21 +194,21 @@ Companion to `DESIGN.md` §7. These are the exact wire shapes the coding agent s
 
 | index | airline | offerKey (decoded) | flight/segment idx | FARE | TAX | ancillary idx (FBA kg) |
 |---|---|---|---|---|---|---|
-| 0 | JT | `JT\|CGK\|DPS\|2026-07-10\|BASIC` | 0 | 60.00 | 8.00 | 0 (0) |
-| 1 | GA | `GA\|CGK\|DPS\|2026-07-10\|BASIC` | 1 | 95.00 | 12.00 | 1 (20) |
-| 2 | QZ | `QZ\|CGK\|DPS\|2026-07-10\|BASIC` | 2 | 55.00 | 7.00 | 2 (0) |
+| 0 | JT | `JT\|CGK\|DPS\|2026-07-10\|BASIC` | 0 | 12.00 | 2.00 | 0 (0) |
+| 1 | GA | `GA\|CGK\|DPS\|2026-07-10\|BASIC` | 1 | 15.00 | 3.00 | 1 (20) |
+| 2 | QZ | `QZ\|CGK\|DPS\|2026-07-10\|BASIC` | 2 | 11.00 | 2.50 | 2 (0) |
 
 The full v1 inventory has **7 airlines**. Omitting `airlineIds` returns one offer per airline
 (order: JT, GA, QZ, AK, SQ, JL, MM); the example above filters to the first three. The rest:
 
 | index | airline | offerKey (decoded) | FARE | TAX | FBA kg | ancillary ladder (kg) |
 |---|---|---|---|---|---|---|
-| 3 | AK | `AK\|CGK\|DPS\|2026-07-10\|BASIC` | 50.00 | 6.00 | 0  | 5, 10, 15 |
-| 4 | SQ | `SQ\|CGK\|DPS\|2026-07-10\|BASIC` | 120.00 | 15.00 | 20 | 25, 30, 35 |
-| 5 | JL | `JL\|CGK\|DPS\|2026-07-10\|BASIC` | 110.00 | 14.00 | 15 | 20, 25, 30 |
-| 6 | MM | `MM\|CGK\|DPS\|2026-07-10\|BASIC` | 65.00 | 9.00 | 0  | 5, 10, 15 |
+| 3 | AK | `AK\|CGK\|DPS\|2026-07-10\|BASIC` | 10.00 | 1.50 | 0  | 5, 10, 15 |
+| 4 | SQ | `SQ\|CGK\|DPS\|2026-07-10\|BASIC` | 18.00 | 4.00 | 20 | 25, 30, 35 |
+| 5 | JL | `JL\|CGK\|DPS\|2026-07-10\|BASIC` | 17.00 | 3.50 | 15 | 20, 25, 30 |
+| 6 | MM | `MM\|CGK\|DPS\|2026-07-10\|BASIC` | 13.00 | 2.50 | 0  | 5, 10, 15 |
 
-`cheapestOption` is on the lowest fare among the *returned* offers — AK (50.00) when all seven are returned.
+`cheapestOption` is on the lowest fare among the *returned* offers — AK (10.00) when all seven are returned.
 
 **Error response — backdate (req #3), `depDate < today`**
 ```json
@@ -233,7 +233,7 @@ Other search errors: `201` airport empty, `203` depDate empty, `204` bad date fo
   "msg": "success",
   "data": {
     "currency": "USD",
-    "offers": [ { "offerKey": "R0F8Q0dLfERQU3wyMDI2LTA3LTEwfEJBU0lD", "routeIndex": 0, "product": ["BASIC"], "issuanceTimeInMins": 120, "serviceFeePerPax": null, "cheapestOption": false, "flightRefs": [{ "flightIndex": 0 }], "charges": [ { "passengerType": "ADT", "chargeType": "FARE", "price": 95.00 }, { "passengerType": "ADT", "chargeType": "TAX", "price": 12.00 } ], "freeAncillaryRefs": [ { "ancillaryIndex": 0, "passengerType": "ADT", "segmentIndex": 0 } ] } ],
+    "offers": [ { "offerKey": "R0F8Q0dLfERQU3wyMDI2LTA3LTEwfEJBU0lD", "routeIndex": 0, "product": ["BASIC"], "issuanceTimeInMins": 120, "serviceFeePerPax": null, "cheapestOption": false, "flightRefs": [{ "flightIndex": 0 }], "charges": [ { "passengerType": "ADT", "chargeType": "FARE", "price": 15.00 }, { "passengerType": "ADT", "chargeType": "TAX", "price": 3.00 } ], "freeAncillaryRefs": [ { "ancillaryIndex": 0, "passengerType": "ADT", "segmentIndex": 0 } ] } ],
     "flights": [ { "segmentRefs": [{ "segmentIndex": 0, "seatClass": "Y", "cabin": "Y", "seatCount": 9 }], "transferCount": 0, "transfer": [], "refundRefs": [], "changeRefs": [] } ],
     "segments": [ { "marketingCarrier": "GA", "flightNumber": "GA200", "operatingCarrier": "GA", "operatingFlightNumber": "GA200", "depAirport": "CGK", "arrAirport": "DPS", "depTerminal": "", "arrTerminal": "", "depTime": "2026-07-10 12:00:00", "arrTime": "2026-07-10 14:00:00", "codeShare": false, "aircraftCode": "B738", "fareBasis": "", "brandedFare": "", "duration": 120, "stopovers": [] } ],
     "ancillaries": [ { "ancillaryType": "FREECHECKEDBAGGAGE", "ancillaryCode": 20, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "20kg" } ]
@@ -257,7 +257,7 @@ Other search errors: `201` airport empty, `203` depDate empty, `204` bad date fo
 ```
 
 **Success response** — 3 `CHECKEDBAGGAGE` options, multiples of 5 above the airline's FBA.
-GA (FBA 20) shown → 25/30/35 kg. (JT/QZ FBA 0 → 5/10/15 kg.) Price = `kg * 1.5` USD (mock rule).
+GA (FBA 20) shown → 25/30/35 kg. (JT/QZ FBA 0 → 5/10/15 kg.) Price = `kg * 0.5` USD (mock rule).
 ```json
 {
   "code": 0,
@@ -265,15 +265,15 @@ GA (FBA 20) shown → 25/30/35 kg. (JT/QZ FBA 0 → 5/10/15 kg.) Price = `kg * 1
   "data": {
     "currency": "USD",
     "ancillaryOffers": [
-      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA25", "ancillaryCode": 25, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "25kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 37.50 },
-      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA30", "ancillaryCode": 30, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "30kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 45.00 },
-      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA35", "ancillaryCode": 35, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "35kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 52.50 }
+      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA25", "ancillaryCode": 25, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "25kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 12.50 },
+      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA30", "ancillaryCode": 30, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "30kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 15.00 },
+      { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA35", "ancillaryCode": 35, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "35kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 17.50 }
     ]
   }
 }
 ```
 
-**JT/QZ example** (FBA 0 → 5/10/15): `ancillaryKey` `1_0_0$JT100$PA5`, codes 5/10/15, prices 7.50/15.00/22.50.
+**JT/QZ example** (FBA 0 → 5/10/15): `ancillaryKey` `1_0_0$JT100$PA5`, codes 5/10/15, prices 2.50/5.00/7.50.
 
 ---
 
@@ -297,14 +297,14 @@ GA (FBA 20) shown → 25/30/35 kg. (JT/QZ FBA 0 → 5/10/15 kg.) Price = `kg * 1
 }
 ```
 
-**Success response** — `orderId` is a fresh random 10-digit string; `total` = FARE+TAX+ancillary = 95+12+37.50.
+**Success response** — `orderId` is a fresh random 10-digit string; `total` = FARE+TAX+ancillary = 15+3+12.50.
 ```json
 {
   "code": 0,
   "msg": "success",
   "data": {
     "currency": "USD",
-    "total": 144.50,
+    "total": 30.50,
     "orderId": "4820137655",
     "expireInMinutes": 30,
     "product": ["BASIC"],
@@ -315,7 +315,7 @@ GA (FBA 20) shown → 25/30/35 kg. (JT/QZ FBA 0 → 5/10/15 kg.) Price = `kg * 1
         "passengerIndex": 0,
         "passengerName": "MURING BALA/CANDY FREDRICK",
         "ancillaryOffers": [
-          { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA25", "ancillaryCode": 25, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "25kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 37.50 }
+          { "addAncillaryType": "CHECKEDBAGGAGE", "ancillaryKey": "1_0_0$GA200$PA25", "ancillaryCode": 25, "ancillaryPiece": 1, "unitOfMeasurement": "WEIGHT", "desc": "25kg", "oriAirport": "CGK", "destAirport": "DPS", "transferAirport": "", "flightNumber": "GA200", "price": 12.50 }
         ]
       }
     ],

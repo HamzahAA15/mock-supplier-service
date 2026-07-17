@@ -86,13 +86,13 @@ anchored to the requested `depDate`.
 
 | Airline | Flight | Dep → Arr | Duration | Aircraft | FBA (kg) | BASIC fare (USD) | Tax (USD) |
 |---|---|---|---|---|---|---|---|
-| JT | JT100 | 08:00 → 10:00 | 120 min | B739 | **0**  | 60.00 | 8.00 |
-| GA | GA200 | 12:00 → 14:00 | 120 min | B738 | **20** | 95.00 | 12.00 |
-| QZ | QZ300 | 16:00 → 18:00 | 120 min | A320 | **0**  | 55.00 | 7.00 |
-| AK | AK400 | 06:00 → 08:00 | 120 min | A320 | **0**  | 50.00 | 6.00 |
-| SQ | SQ500 | 18:00 → 20:00 | 120 min | B77W | **20** | 120.00 | 15.00 |
-| JL | JL600 | 20:00 → 22:00 | 120 min | B788 | **15** | 110.00 | 14.00 |
-| MM | MM700 | 10:00 → 12:00 | 120 min | A320 | **0**  | 65.00 | 9.00 |
+| JT | JT100 | 08:00 → 10:00 | 120 min | B739 | **0**  | 12.00 | 2.00 |
+| GA | GA200 | 12:00 → 14:00 | 120 min | B738 | **20** | 15.00 | 3.00 |
+| QZ | QZ300 | 16:00 → 18:00 | 120 min | A320 | **0**  | 11.00 | 2.50 |
+| AK | AK400 | 06:00 → 08:00 | 120 min | A320 | **0**  | 10.00 | 1.50 |
+| SQ | SQ500 | 18:00 → 20:00 | 120 min | B77W | **20** | 18.00 | 4.00 |
+| JL | JL600 | 20:00 → 22:00 | 120 min | B788 | **15** | 17.00 | 3.50 |
+| MM | MM700 | 10:00 → 12:00 | 120 min | A320 | **0**  | 13.00 | 2.50 |
 
 - `marketingCarrier` = `operatingCarrier` = airline code; `codeShare: false`.
 - `seatCount`: fixed (e.g. 9); `cabin: "Y"`, `seatClass: "Y"`.
@@ -193,7 +193,7 @@ All paths are `POST`. Success = `code: 0, msg: "success"` unless noted.
 - **Req:** `{ "offerKey": "..." }`.
 - **Success `data`:** `{ "currency": "USD", "ancillaryOffers": [...] }`.
 - Generates **3 `CHECKEDBAGGAGE`** options as multiples of 5 above the airline's FBA:
-  - JT/QZ/AK/MM (FBA 0): 5, 10, 15 kg → e.g. price `kg * 1.5` USD.
+  - JT/QZ/AK/MM (FBA 0): 5, 10, 15 kg → e.g. price `kg * 0.5` USD.
   - GA/SQ (FBA 20): 25, 30, 35 kg.
   - JL (FBA 15): 20, 25, 30 kg.
   - Each: `ancillaryKey` (§6), `ancillaryCode` (kg), `ancillaryPiece: 1`, `unitOfMeasurement: "WEIGHT"`,

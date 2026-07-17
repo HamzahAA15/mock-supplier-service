@@ -184,8 +184,8 @@
                   "});",
                   "var ga = offerFor(\"GA\");",
                   "var ch = {}; ga.charges.forEach(function(c){ ch[c.passengerType+\"/\"+c.chargeType]=c.price; });",
-                  "pm.test(\"GA ADT/FARE==95 & ADT/TAX==12\", function(){",
-                  "  pm.expect(ch[\"ADT/FARE\"]).to.eql(95.0); pm.expect(ch[\"ADT/TAX\"]).to.eql(12.0);",
+                  "pm.test(\"GA ADT/FARE==15 & ADT/TAX==3\", function(){",
+                  "  pm.expect(ch[\"ADT/FARE\"]).to.eql(15.0); pm.expect(ch[\"ADT/TAX\"]).to.eql(3.0);",
                   "});",
                   "pm.collectionVariables.set(\"gaOfferKey\", ga.offerKey);",
                   "pm.collectionVariables.set(\"jtOfferKey\", offerFor(\"JT\").offerKey);"
@@ -370,13 +370,13 @@
                   "pm.test(\"product==[BASIC] & currency==USD\", function(){",
                   "  pm.expect(d.product).to.eql([\"BASIC\"]); pm.expect(d.currency).to.eql(\"USD\");",
                   "});",
-                  "pm.test(\"addedAncillary: pax0, code 25, price 37.50\", function(){",
+                  "pm.test(\"addedAncillary: pax0, code 25, price 12.50\", function(){",
                   "  pm.expect(d.addedAncillary).to.have.lengthOf(1);",
                   "  pm.expect(d.addedAncillary[0].passengerIndex).to.eql(0);",
                   "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].ancillaryCode).to.eql(25);",
-                  "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].price).to.eql(37.5);",
+                  "  pm.expect(d.addedAncillary[0].ancillaryOffers[0].price).to.eql(12.5);",
                   "});",
-                  "pm.test(\"total == 251.50 (2*(95+12) + 37.50)\", function(){ pm.expect(d.total).to.eql(251.5); });",
+                  "pm.test(\"total == 48.50 (2*(15+3) + 12.50)\", function(){ pm.expect(d.total).to.eql(48.5); });",
                   "pm.collectionVariables.set(\"orderId\", d.orderId);"
                 ]
               }
@@ -423,8 +423,8 @@
                 "exec": [
                   "var j = pm.response.json();",
                   "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "pm.test(\"amount=='251.50', currency USD, txn non-empty\", function(){",
-                  "  pm.expect(j.data.amount).to.eql(\"251.50\");",
+                  "pm.test(\"amount=='48.50', currency USD, txn non-empty\", function(){",
+                  "  pm.expect(j.data.amount).to.eql(\"48.50\");",
                   "  pm.expect(j.data.currency).to.eql(\"USD\");",
                   "  pm.expect(j.data.transactionId).to.not.be.empty;",
                   "});"
@@ -525,10 +525,10 @@
                   "var j = pm.response.json();",
                   "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
                   "var d = j.data;",
-                  "pm.test(\"status ISSUED, payTime set, amount 251.50, product BASIC\", function(){",
+                  "pm.test(\"status ISSUED, payTime set, amount 48.50, product BASIC\", function(){",
                   "  pm.expect(d.orderInfo.status).to.eql(\"ISSUED\");",
                   "  pm.expect(d.orderInfo.payTime).to.not.be.empty;",
-                  "  pm.expect(d.orderInfo.amount).to.eql(\"251.50\");",
+                  "  pm.expect(d.orderInfo.amount).to.eql(\"48.50\");",
                   "  pm.expect(d.orderInfo.product).to.eql([\"BASIC\"]);",
                   "});",
                   "pm.test(\"pnr 6-alnum & email echoed\", function(){",
@@ -665,8 +665,8 @@
                 "exec": [
                   "var j = pm.response.json();",
                   "pm.test(\"code==0\", function(){ pm.expect(j.code).to.eql(0); });",
-                  "pm.test(\"total==294.25 (2*(95+12)+(71.25+9.0); child=75% of fare & tax)\", function(){",
-                  "  pm.expect(j.data.total).to.eql(294.25);",
+                  "pm.test(\"total==49.5 (2*(15+3)+(11.25+2.25); child=75%)\", function(){",
+                  "  pm.expect(j.data.total).to.eql(49.5);",
                   "});",
                   "pm.collectionVariables.set(\"orderId\", j.data.orderId);"
                 ]
@@ -1386,7 +1386,7 @@
                   "    .to.eql([20,30,40,50,60,70,80,90,100]);",
                   "});",
                   "var tier = j.products[0].productItems.find(function(i){return i.baggage.baggageAllowance===70;});",
-                  "pm.test(\"70kg tier is 358.38\", function(){ pm.expect(tier.basePrice).to.eql(358.38); });",
+                  "pm.test(\"70kg tier is 12.00\", function(){ pm.expect(tier.basePrice).to.eql(12.0); });",
                   "pm.test(\"70kg productItemId is deterministic\", function(){",
                   "  pm.expect(tier.productItemId).to.eql(\"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\");",
                   "});"
@@ -1416,7 +1416,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
+              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 12.00,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1469,7 +1469,7 @@
                   "language": "text"
                 }
               },
-              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 358.38,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+              "raw": "{\n  \"ancillaryOrderNo\": \"{{bpiAuxNo}}\",\n  \"orderNo\": \"{{bpiAuxNo}}\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"QFzM2G1Z2/5c5tvgZ3Jj4uJeXXYS1qcNhyOy08bfahI=\",\n          \"productType\": 1,\n          \"saleType\": 2,\n          \"basePrice\": 12.00,\n          \"currency\": \"USD\",\n          \"supportOverWeight\": false,\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 70,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
             }
           },
           "response": [],
@@ -1551,10 +1551,10 @@
                   "var j = pm.response.json();",
                   "pm.test(\"status 0 success\", function(){ pm.expect(j.status).to.eql(\"0\"); });",
                   "var d = j.data;",
-                  "pm.test(\"orderStatus PURCHASED, currency USD, total 358.38\", function(){",
+                  "pm.test(\"orderStatus PURCHASED, currency USD, total 12.00\", function(){",
                   "  pm.expect(d.orderStatus).to.eql(\"PURCHASED\");",
                   "  pm.expect(d.currency).to.eql(\"USD\");",
-                  "  pm.expect(d.totalPrice).to.eql(358.38);",
+                  "  pm.expect(d.totalPrice).to.eql(12.0);",
                   "});",
                   "pm.test(\"ancillaryOrderNo echoed\", function(){",
                   "  pm.expect(d.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"bpiAuxNo\"));",
@@ -1591,7 +1591,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ancillaryOrderNo\": \"BPI-NEG\",\n  \"orderNo\": \"BPI-NEG\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"TAMPERED/notarealid=\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
+              "raw": "{\n  \"ancillaryOrderNo\": \"BPI-NEG\",\n  \"orderNo\": \"BPI-NEG\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"VJ\",\n          \"flightNumber\": \"VJ84\",\n          \"depAirport\": \"BNE\",\n          \"depTime\": \"202607312330\",\n          \"arrAirport\": \"SGN\",\n          \"arrTime\": \"202608010500\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"TAMPERED/notarealid=\",\n          \"productType\": 1,\n          \"basePrice\": 2.00,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1688,7 +1688,7 @@
                   "language": "json"
                 }
               },
-              "raw": "{\n  \"ancillaryOrderNo\": \"SB-BLOCK-KUL\",\n  \"orderNo\": \"SB-BLOCK-KUL\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"depAirport\": \"SIN\",\n          \"depTime\": \"202609200800\",\n          \"arrAirport\": \"KUL\",\n          \"arrTime\": \"202609200900\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"IGNORED-route-checked-first\",\n          \"productType\": 1,\n          \"basePrice\": 52.14,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
+              "raw": "{\n  \"ancillaryOrderNo\": \"SB-BLOCK-KUL\",\n  \"orderNo\": \"SB-BLOCK-KUL\",\n  \"isCross\": 1,\n  \"passengerAuxes\": [\n    {\n      \"passengerInfo\": {\n        \"passengerType\": \"ADT\",\n        \"lastName\": \"TESTER\",\n        \"firstName\": \"ALPHA\",\n        \"pnrCode\": \"TEST01\"\n      },\n      \"segmentProducts\": {\n        \"segment\": {\n          \"carrier\": \"TR\",\n          \"flightNumber\": \"TR456\",\n          \"depAirport\": \"SIN\",\n          \"depTime\": \"202609200800\",\n          \"arrAirport\": \"KUL\",\n          \"arrTime\": \"202609200900\",\n          \"tripType\": 1,\n          \"segmentIndex\": 1,\n          \"id\": 0\n        },\n        \"productItem\": {\n          \"productItemId\": \"IGNORED-route-checked-first\",\n          \"productType\": 1,\n          \"basePrice\": 2.00,\n          \"currency\": \"USD\",\n          \"baggage\": {\n            \"baggagePieces\": 1,\n            \"baggageAllowance\": 20,\n            \"isAllWeight\": true\n          }\n        }\n      }\n    }\n  ]\n}"
             }
           },
           "response": [],
@@ -1772,7 +1772,7 @@
                   "  offers.forEach(function(o){ pm.expect(o.unitOfMeasurement).to.eql(\"WEIGHT\"); pm.expect(o.ancillaryType).to.eql(\"CHECKEDBAGGAGE\"); pm.expect(o.ancillaryPiece).to.eql(1); });",
                   "});",
                   "var tier20 = po[0].ancillaryOffers.find(function(o){return o.ancillaryCode===20;});",
-                  "pm.test(\"20kg tier is 52.14\", function(){ pm.expect(tier20.price).to.eql(52.14); });",
+                  "pm.test(\"20kg tier is 2.00\", function(){ pm.expect(tier20.price).to.eql(2.0); });",
                   "pm.collectionVariables.set(\"sbpiKey\", tier20.ancillaryKey);",
                   "pm.collectionVariables.set(\"sbpiOrderNo\", \"TVLK-BPI-\" + Date.now());"
                 ]
@@ -1882,7 +1882,7 @@
                   "var j = pm.response.json();",
                   "pm.test(\"code 0 / ISSUING\", function(){ pm.expect(j.code).to.eql(0); pm.expect(j.data.orderStatus).to.eql(\"ISSUING\"); });",
                   "pm.test(\"ancillaryOrderNo echoed\", function(){ pm.expect(j.data.ancillaryOrderNo).to.eql(pm.collectionVariables.get(\"sbpiOrderNo\")); });",
-                  "pm.test(\"total 52.14 USD\", function(){ pm.expect(j.data.total).to.eql(52.14); pm.expect(j.data.currency).to.eql(\"USD\"); });",
+                  "pm.test(\"total 2.00 USD\", function(){ pm.expect(j.data.total).to.eql(2.0); pm.expect(j.data.currency).to.eql(\"USD\"); });",
                   "pm.test(\"segments reconstructed from ancillaryKey\", function(){",
                   "  var s = j.data.selectedAncillary[0].segments[0];",
                   "  pm.expect(s.departureAirport).to.eql(\"CGK\"); pm.expect(s.arrivalAirport).to.eql(\"BKI\");",
@@ -1928,7 +1928,7 @@
                   "pm.test(\"unitOfMeasurement WEIGHT on items\", function(){",
                   "  j.data.selectedAncillary.forEach(function(i){ pm.expect(i.unitOfMeasurement).to.eql(\"WEIGHT\"); });",
                   "});",
-                  "pm.test(\"total consistent\", function(){ pm.expect(j.data.total).to.eql(52.14); });"
+                  "pm.test(\"total consistent\", function(){ pm.expect(j.data.total).to.eql(2.0); });"
                 ]
               }
             }

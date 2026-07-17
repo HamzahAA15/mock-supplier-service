@@ -14,7 +14,7 @@ def test_pay_transitions_to_issued(client):
     assert res["code"] == 0
     data = res["data"]
     assert data["transactionId"].startswith("TXN")
-    assert data["amount"] == "107.00"  # 95 + 12, string per contract
+    assert data["amount"] == "18.00"  # 15 + 3, string per contract
     assert data["currency"] == "USD"
     detail = client.post("/flight/orderDetail/v3", json={"orderId": order_id}).json()
     assert detail["data"]["orderInfo"]["status"] == "ISSUED"
@@ -40,7 +40,7 @@ def test_pay_antom_returns_receiver_wallet_account(client):
     assert res["code"] == 0
     data = res["data"]
     assert data["accountNumber"] == "21881200168224D1"  # receiver account, not payer's
-    assert data["amount"] == "107.00"
+    assert data["amount"] == "18.00"
     detail = client.post("/flight/orderDetail/v3", json={"orderId": order_id}).json()
     assert detail["data"]["orderInfo"]["status"] == "ISSUED"
     assert detail["data"]["orderInfo"]["accountNumber"] == "21881200168224D1"

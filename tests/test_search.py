@@ -41,8 +41,8 @@ def test_happy_path_all_offers(client):
     # Charges: 1 adult -> ADT FARE+TAX only.
     jt = data["offers"][0]["charges"]
     assert jt == [
-        {"passengerType": "ADT", "chargeType": "FARE", "price": 60.0},
-        {"passengerType": "ADT", "chargeType": "TAX", "price": 8.0},
+        {"passengerType": "ADT", "chargeType": "FARE", "price": 12.0},
+        {"passengerType": "ADT", "chargeType": "TAX", "price": 2.0},
     ]
 
 
@@ -73,10 +73,10 @@ def test_child_infant_charges(client):
     res = client.post("/flight/search/v3", json=search_body(adult=2, child=1, infant=1, airlineIds=["GA"]))
     charges = res.json()["data"]["offers"][0]["charges"]
     by_type = {(c["passengerType"], c["chargeType"]): c["price"] for c in charges}
-    assert by_type[("ADT", "FARE")] == 95.0
-    assert by_type[("CHD", "FARE")] == 71.25  # 75%
-    assert by_type[("INF", "FARE")] == 9.5    # 10%
-    assert by_type[("CHD", "TAX")] == 9.0
+    assert by_type[("ADT", "FARE")] == 15.0
+    assert by_type[("CHD", "FARE")] == 11.25  # 75%
+    assert by_type[("INF", "FARE")] == 1.5    # 10%
+    assert by_type[("CHD", "TAX")] == 2.25
     assert len(charges) == 6
 
 

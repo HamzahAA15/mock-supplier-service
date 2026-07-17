@@ -19,7 +19,7 @@ def get_offers(client, key):
 def test_ga_options_above_fba_20(client):
     offers = get_offers(client, GA_KEY)
     assert [o["ancillaryCode"] for o in offers] == [25, 30, 35]
-    assert [o["price"] for o in offers] == [37.5, 45.0, 52.5]
+    assert [o["price"] for o in offers] == [12.5, 15.0, 17.5]
     assert offers[0]["ancillaryKey"] == "1_0_0$GA200$PA25"
     assert all(o["addAncillaryType"] == "CHECKEDBAGGAGE" for o in offers)
     assert all(o["flightNumber"] == "GA200" for o in offers)
@@ -30,7 +30,7 @@ def test_jt_qz_options_above_fba_0(client):
     for key, flight in ((JT_KEY, "JT100"), (QZ_KEY, "QZ300")):
         offers = get_offers(client, key)
         assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
-        assert [o["price"] for o in offers] == [7.5, 15.0, 22.5]
+        assert [o["price"] for o in offers] == [2.5, 5.0, 7.5]
         assert offers[0]["ancillaryKey"] == "1_0_0${}$PA5".format(flight)
 
 
@@ -43,7 +43,7 @@ def test_ak_options_above_fba_0(client):
 def test_mm_options_above_fba_0(client):
     offers = get_offers(client, MM_KEY)
     assert [o["ancillaryCode"] for o in offers] == [5, 10, 15]
-    assert [o["price"] for o in offers] == [7.5, 15.0, 22.5]
+    assert [o["price"] for o in offers] == [2.5, 5.0, 7.5]
     assert offers[0]["ancillaryKey"] == "1_0_0$MM700$PA5"
     assert all(o["flightNumber"] == "MM700" for o in offers)
 
@@ -57,7 +57,7 @@ def test_sq_options_above_fba_20(client):
 def test_jl_options_above_fba_15(client):
     offers = get_offers(client, JL_KEY)
     assert [o["ancillaryCode"] for o in offers] == [20, 25, 30]
-    assert [o["price"] for o in offers] == [30.0, 37.5, 45.0]
+    assert [o["price"] for o in offers] == [10.0, 12.5, 15.0]
     assert offers[0]["ancillaryKey"] == "1_0_0$JL600$PA20"
 
 

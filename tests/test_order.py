@@ -21,7 +21,7 @@ def test_order_happy_path_with_baggage(client):
     assert res["code"] == 0
     data = res["data"]
     assert data["orderId"].isdigit() and len(data["orderId"]) == 10  # req #6
-    assert data["total"] == 144.5  # 95 + 12 + 37.5
+    assert data["total"] == 30.5  # 15 + 3 + 12.5
     assert data["expireInMinutes"] == 30
     assert data["product"] == ["BASIC"]
     added = data["addedAncillary"]
@@ -29,7 +29,7 @@ def test_order_happy_path_with_baggage(client):
     assert added[0]["passengerIndex"] == 0
     assert added[0]["passengerName"] == "MURING BALA/CANDY FREDRICK"
     assert added[0]["ancillaryOffers"][0]["ancillaryCode"] == 25
-    assert added[0]["ancillaryOffers"][0]["price"] == 37.5
+    assert added[0]["ancillaryOffers"][0]["price"] == 12.5
     # Offer reconstructed from offerKey — route/date echoed.
     assert data["offers"][0]["offerKey"] == GA_KEY
     assert data["segments"][0]["depTime"] == "2026-07-10 12:00:00"
@@ -39,8 +39,8 @@ def test_multi_passenger_echo_verbatim(client):
     body = order_body(GA_KEY, passengers=SANTOSO_FAMILY)
     res = client.post("/flight/order/v3", json=body).json()
     assert res["code"] == 0
-    # 2 ADT * (95+12) + 1 CHD * (71.25+9) = 214 + 80.25
-    assert res["data"]["total"] == 294.25
+    # 2 ADT * (15+3) + 1 CHD * (11.25+2.25) = 36 + 13.5
+    assert res["data"]["total"] == 49.5
     # Echo asserted end-to-end via orderDetail.
     detail = client.post("/flight/orderDetail/v3", json={"orderId": res["data"]["orderId"]}).json()
     assert detail["data"]["passengerList"] == SANTOSO_FAMILY  # N in => N out, verbatim, same order
