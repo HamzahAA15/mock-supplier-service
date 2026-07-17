@@ -1,6 +1,31 @@
+from app.services import bpi_catalog
 from tests.bpi_helpers import (
     SEG_GA, SEG_VJ, order_body, pax_aux, product_item_for, search_body,
 )
+
+INT32_MAX = 2 ** 31 - 1
+
+
+def test_segment_id_fits_signed_32bit():
+    # segmentId must never exceed a signed 32-bit int (Java `int`) — guard against
+    # the crc32 & 0xFFFFFFFF overflow. Sweep many distinct segments incl. a known
+    # high-crc case, plus the fixtures.
+    segs = [SEG_VJ, SEG_GA]
+    segs += [{"carrier": "X%d" % i, "flightNumber": "F%d" % i, "depAirport": "AAA",
+              "depTime": "2026%04d" % i, "arrAirport": "BBB", "arrTime": "z%d" % i}
+             for i in range(2000)]
+    for seg in segs:
+        sid = bpi_catalog.segment_numeric_id(seg)
+        assert 0 <= sid <= INT32_MAX, "segmentId %d out of signed-32-bit range" % sid
+
+
+def test_orderdetail_segment_id_fits_signed_32bit(client):
+    aux_no = _place_order(client, weight=20)
+    data = client.post("/ancillaryOrderDetail", json={"auxiliaryOrderNo": aux_no}).json()["data"]
+    for seg in data["segments"]:
+        assert 0 <= seg["id"] <= INT32_MAX
+    for pa in data["passengerAncillaries"]:
+        assert 0 <= pa["segmentId"] <= INT32_MAX
 
 
 def _place_order(client, aux_no="ORD-1", weight=20, segments=None):

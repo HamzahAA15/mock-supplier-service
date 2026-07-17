@@ -60,8 +60,13 @@ def product_item_id(seg: Dict[str, Any], weight_kg: int) -> str:
 
 
 def segment_numeric_id(seg: Dict[str, Any]) -> int:
-    """Stable positive int id for a segment (crc32 of its key)."""
-    return zlib.crc32(_segment_key(seg).encode("utf-8")) & 0xFFFFFFFF
+    """Stable positive int id for a segment (crc32 of its key).
+
+    Masked to 31 bits (0 .. 2**31-1) so it always fits in a signed 32-bit int
+    on the consumer side — a full 32-bit crc32 (& 0xFFFFFFFF) can exceed
+    2147483647 and overflow a Java `int`.
+    """
+    return zlib.crc32(_segment_key(seg).encode("utf-8")) & 0x7FFFFFFF
 
 
 def _refund_rule() -> Dict[str, Any]:
