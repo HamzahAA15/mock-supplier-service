@@ -15,11 +15,11 @@ def test_happy_path_all_offers(client):
     assert body["code"] == 0 and body["msg"] == "success"
     data = body["data"]
     assert data["currency"] == "USD"
-    # One offer per airline in AIRLINE_ORDER: JT, GA, QZ, AK, SQ, JL, MM.
-    assert len(data["offers"]) == 7
-    assert len(data["flights"]) == 7
-    assert len(data["segments"]) == 7
-    assert len(data["ancillaries"]) == 7
+    # One offer per airline in AIRLINE_ORDER: JT, GA, QZ, AK, SQ, JL, MM, OD.
+    assert len(data["offers"]) == 8
+    assert len(data["flights"]) == 8
+    assert len(data["segments"]) == 8
+    assert len(data["ancillaries"]) == 8
     assert data["penalties"] == []
 
     # offerKeys encode the requested route/date (CGK->DPS, future-relative).
@@ -27,16 +27,16 @@ def test_happy_path_all_offers(client):
     keys = [o["offerKey"] for o in data["offers"]]
     assert decode_key(keys[0]) == "JT|CGK|DPS|{}|BASIC".format(dep)
     assert decode_key(keys[1]) == "GA|CGK|DPS|{}|BASIC".format(dep)
-    assert decode_key(keys[6]) == "MM|CGK|DPS|{}|BASIC".format(dep)
+    assert decode_key(keys[7]) == "OD|CGK|DPS|{}|BASIC".format(dep)
 
     # Per-airline FBA (req #8), in order; piece 0 when FBA=0.
-    # JT 0, GA 20, QZ 0, AK 0, SQ 20, JL 15, MM 0.
+    # JT 0, GA 20, QZ 0, AK 0, SQ 20, JL 15, MM 0, OD 0.
     fbas = [(a["ancillaryCode"], a["ancillaryPiece"]) for a in data["ancillaries"]]
-    assert fbas == [(0, 0), (20, 1), (0, 0), (0, 0), (20, 1), (15, 1), (0, 0)]
+    assert fbas == [(0, 0), (20, 1), (0, 0), (0, 0), (20, 1), (15, 1), (0, 0), (0, 0)]
     assert all(a["ancillaryType"] == "FREECHECKEDBAGGAGE" for a in data["ancillaries"])
 
-    # AK is still the cheapest offer (fare 50), at index 3; MM (65) is not.
-    assert [o["cheapestOption"] for o in data["offers"]] == [False, False, False, True, False, False, False]
+    # OD (fare 2.00) is now the cheapest offer, at index 7.
+    assert [o["cheapestOption"] for o in data["offers"]] == [False] * 7 + [True]
 
     # Charges: 1 adult -> ADT FARE+TAX only.
     jt = data["offers"][0]["charges"]

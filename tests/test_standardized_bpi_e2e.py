@@ -76,6 +76,24 @@ def test_tsy_and_standardized_versions_coexist(client):
     assert std["code"] == 0      # standardized int envelope
 
 
+def test_od_segment_is_weight_based(client):
+    # OD is a normal weight-based carrier -> unitOfMeasurement WEIGHT in offers + orderDetail.
+    seg_od = segment(marketing="OD", flight_no="OD800", dep="CGK", arr="DPS")
+    search_rs = client.post(BASE_SEARCH_PATH, json=search_body(
+        routes=[{"tripType": 1, "segments": [seg_od]}], passengers=[PAX_1])).json()
+    assert search_rs["code"] == 0
+    offer = offer_for(search_rs, 0, 20)
+    assert offer["unitOfMeasurement"] == "WEIGHT"
+    order_rs = client.post(ORDER_PATH, json=order_body(
+        "OD-STD-1", passengers=[PAX_1],
+        selected=[{"passengerId": 1, "ancillaryKey": offer["ancillaryKey"]}])).json()
+    assert order_rs["code"] == 0
+    seg0 = order_rs["data"]["selectedAncillary"][0]["segments"][0]
+    assert seg0["marketingCarrier"] == "OD" and seg0["flightNumber"] == "OD800"
+    detail = client.get("{}/{}".format(ORDER_PATH, "OD-STD-1")).json()
+    assert detail["data"]["selectedAncillary"][0]["unitOfMeasurement"] == "WEIGHT"
+
+
 def test_mm_segment_flows_through(client):
     # Standardized BPI is carrier-agnostic: an MM segment searches, orders, and
     # its carrier is reconstructed in the order RS.

@@ -18,6 +18,12 @@ SEG_MM = {
     "tripType": 1, "segmentIndex": 1, "id": 0,
 }
 
+SEG_OD = {
+    "carrier": "OD", "flightNumber": "OD800", "depAirport": "CGK",
+    "depTime": "202609201400", "arrAirport": "DPS", "arrTime": "202609201600",
+    "tripType": 1, "segmentIndex": 1, "id": 0,
+}
+
 # Blocked routes for the order negative case (dep SIN -> arr KUL/CGK).
 SEG_SIN_KUL = {
     "carrier": "TR", "flightNumber": "TR456", "depAirport": "SIN",
