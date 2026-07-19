@@ -17,7 +17,9 @@ from app.models.standardized_bpi import (
     StandardizedBpiOrderRequest,
     StandardizedBpiSearchRequest,
 )
+from app.services import scenario_responses
 from app.services import standardized_bpi_catalog as catalog
+from app.services.scenario_rules import preset_def, rules
 from app.services.standardized_bpi_orders import store
 
 router = APIRouter(prefix="/ancillary/v1")
@@ -67,8 +69,13 @@ def standardized_bpi_search(req: StandardizedBpiSearchRequest):
 
     for route in routes:
         for seg in (route.get("segments") or []):
-            if catalog.is_route_blocked(seg):
-                return err(CODE_NO_QUOTATION, MSG_NO_QUOTATION)
+            # Scenario guard (replaces the hard-coded blocked-route rule; the
+            # seed rules keep SIN->KUL / SIN->CGK answering 555 for any carrier).
+            rule = rules.check("std.baggageSearch", seg.get("marketingCarrier"),
+                               seg.get("departureAirport"), seg.get("arrivalAirport"))
+            if rule:
+                body, _ = scenario_responses.render(rule)
+                return body
             if catalog.is_departure_past(seg):
                 return err(CODE_SALE_PROHIBITED, MSG_SALE_PROHIBITED)
 
@@ -120,9 +127,14 @@ def standardized_bpi_order(req: StandardizedBpiOrderRequest):
         decoded = catalog.decode_ancillary_key(item.get("ancillaryKey"))
         if decoded is None:
             return err(CODE_INVALID_ORDER_NO, MSG_INVALID_KEY)
+        # Scenario guard over the segments reconstructed from the reversible
+        # ancillaryKey (the order RQ itself carries no segment data).
         for seg in decoded["segments"]:
-            if catalog.is_route_blocked(seg):
-                return err(CODE_NO_QUOTATION, MSG_NO_QUOTATION)
+            rule = rules.check("std.order", seg.get("marketingCarrier"),
+                               seg.get("departureAirport"), seg.get("arrivalAirport"))
+            if rule:
+                body, _ = scenario_responses.render(rule)
+                return body
         weight = decoded["weight"]
         price = catalog.BAGGAGE_TIERS[weight]
         total += price
@@ -169,11 +181,28 @@ def standardized_bpi_order_detail(ancillary_order_no: str):
     if record is None:
         return err(CODE_INVALID_ORDER_NO, MSG_INVALID_ORDER_NO)
 
+    # Scenario guard: keyed on the stored record's segments (GET carries only the
+    # order number). No pay step in this contract, so flow is always "issuance".
+    matched_rule = None
+    for item in record["selectedAncillary"]:
+        for seg in (item.get("segments") or []):
+            matched_rule = rules.check("std.orderDetail", seg.get("marketingCarrier"),
+                                       seg.get("departureAirport"),
+                                       seg.get("arrivalAirport"), flow="issuance")
+            if matched_rule:
+                break
+        if matched_rule:
+            break
+    if matched_rule and preset_def(matched_rule)["kind"] != "status_override":
+        body, _ = scenario_responses.render(matched_rule)
+        return body
+    # status_override rules fall through: build the normal payload, then patch it.
+
     detail_selected = [
         dict(item, unitOfMeasurement=catalog.unit_of_measurement(item.get("segments")))
         for item in record["selectedAncillary"]
     ]
-    return ok({
+    data = {
         "ancillaryOrderNo": record["ancillaryOrderNo"],
         "orderStatus": "ISSUED",  # polling target state; mock issues immediately
         "total": record["total"],
@@ -183,4 +212,7 @@ def standardized_bpi_order_detail(ancillary_order_no: str):
         "updatedTime": catalog.now_timestamp(),
         "passengers": record["passengers"],
         "selectedAncillary": detail_selected,
-    })
+    }
+    if matched_rule:  # status_override: e.g. stuck in ISSUING / ISSUE_FAILED
+        scenario_responses.apply_status_override(matched_rule, data)
+    return ok(data)

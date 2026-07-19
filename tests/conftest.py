@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services.bpi_orders import store as bpi_store
 from app.services.orders import store
+from app.services.scenario_rules import rules as scenario_rules
 from app.services.standardized_bpi_orders import store as standardized_bpi_store
 
 
@@ -26,13 +27,31 @@ def client():
 
 @pytest.fixture(autouse=True)
 def _reset_store():
+    # Scenario rules reset BEFORE and AFTER: a leaked rule from one test would
+    # silently change another test's blocked-route behavior.
     store.clear()
     bpi_store.clear()
     standardized_bpi_store.clear()
+    scenario_rules.reset()
     yield
     store.clear()
     bpi_store.clear()
     standardized_bpi_store.clear()
+    scenario_rules.reset()
+
+
+ADMIN_KEY = "test-admin-key"
+
+
+@pytest.fixture()
+def admin_env(monkeypatch):
+    """Enable the admin API for a test (ADMIN_KEY is read per-request)."""
+    monkeypatch.setenv("ADMIN_KEY", ADMIN_KEY)
+
+
+@pytest.fixture()
+def admin_headers(admin_env):
+    return {"X-Admin-Key": ADMIN_KEY}
 
 
 def search_body(ori="CGK", dest="DPS", dep_date=None, adult=1, child=0, infant=0, **extra):
