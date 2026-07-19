@@ -1481,9 +1481,11 @@
                 "exec": [
                   "var CryptoJS = require('crypto-js');",
                   "var key = CryptoJS.enc.Utf8.parse('B@4p6aay&)*^M0^r');",
+                  "// Server uses a zero IV (Java IvParameterSpec(new byte[16]) — see app/services/crypto.py).",
+                  "var iv = CryptoJS.enc.Hex.parse('00000000000000000000000000000000');",
                   "var plaintext = pm.request.body.raw;",
                   "var encrypted = CryptoJS.AES.encrypt(plaintext, key, {",
-                  "  iv: key, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
+                  "  iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
                   "});",
                   "pm.request.body.update({ mode: 'raw', raw: encrypted.toString() });"
                 ]
@@ -1496,9 +1498,11 @@
                 "exec": [
                   "var CryptoJS = require('crypto-js');",
                   "var key = CryptoJS.enc.Utf8.parse('B@4p6aay&)*^M0^r');",
+                  "// Server uses a zero IV (Java IvParameterSpec(new byte[16]) \u2014 see app/services/crypto.py).",
+                  "var iv = CryptoJS.enc.Hex.parse('00000000000000000000000000000000');",
                   "// Response is encrypted because the request was (symmetric channel) \u2014 decrypt it.",
                   "var decrypted = CryptoJS.AES.decrypt(pm.response.text(), key, {",
-                  "  iv: key, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
+                  "  iv: iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7",
                   "});",
                   "var j = JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));",
                   "pm.test('encrypted order accepted (status 0)', function(){ pm.expect(j.status).to.eql('0'); });",

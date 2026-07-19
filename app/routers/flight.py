@@ -11,9 +11,10 @@ from app.models.pay import PayRequest
 from app.models.search import SearchRequest
 from app.models.verify import VerifyRequest
 from app.services import ancillary as ancillary_svc
-from app.services import codes, inventory, payments
+from app.services import codes, inventory, payments, scenario_responses
 from app.services.offer_key import decode_ancillary_key, decode_offer_key
 from app.services.orders import store
+from app.services.scenario_rules import preset_def, rules
 
 router = APIRouter(prefix="/flight")
 
@@ -58,6 +59,13 @@ def search(req: SearchRequest):
         if not airlines:
             return codes.error(codes.NO_DATA)
 
+    # Scenario guard: a search rule FILTERS the airline out of the results (a
+    # supplier with no inventory is not an error), it never fails the search.
+    airlines = [a for a in airlines if rules.check("search", a, ori, dest) is None]
+    if not airlines:
+        # All airlines filtered -> empty success (build_offer_data([]) crashes).
+        return codes.success(scenario_responses.empty_search_data())
+
     counts = inventory.pax_counts(req.adult_number, req.child_number, req.infant_number)
     return codes.success(inventory.build_offer_data(airlines, ori, dest, dep_date, counts))
 
@@ -69,6 +77,11 @@ def pre_order_verify(req: VerifyRequest):
     offer = decode_offer_key(req.offer_key)
     if offer is None:
         return codes.error(codes.NO_DATA)
+    # Scenario guard: keyed on the decoded offerKey.
+    rule = rules.check("preOrderVerify", offer["airline"], offer["ori"], offer["dest"])
+    if rule:
+        body, _ = scenario_responses.render(rule)
+        return body
     # Pax counts are not encoded in the offerKey; verify prices the adult view.
     data = inventory.build_offer_data(
         [offer["airline"]], offer["ori"], offer["dest"], offer["dep_date"], {"ADT": 1}
@@ -83,6 +96,12 @@ def ancillary_search(req: AncillarySearchRequest):
     offer = decode_offer_key(req.offer_key)
     if offer is None:
         return codes.error(codes.NO_DATA)
+    # Scenario guard: no_results renders an empty (schema-valid) offer list,
+    # ancillary_expired renders the 553 envelope.
+    rule = rules.check("ancillarySearch", offer["airline"], offer["ori"], offer["dest"])
+    if rule:
+        body, _ = scenario_responses.render(rule)
+        return body
     return codes.success({
         "currency": config.CURRENCY,
         "ancillaryOffers": ancillary_svc.build_ancillary_offers(
@@ -99,6 +118,12 @@ def order(req: OrderRequest):
     if offer is None:
         return codes.error(codes.NO_DATA)
     offer["offerKey"] = req.offer_key
+
+    # Scenario guard: fires before the order is created (no store.create below).
+    rule = rules.check("order", offer["airline"], offer["ori"], offer["dest"])
+    if rule:
+        body, _ = scenario_responses.render(rule)
+        return body
 
     passengers = req.passengers or []
     if not any(p.get("passengerType") == "ADT" for p in passengers):
@@ -180,6 +205,13 @@ def pay(req: PayRequest):
         return codes.error(codes.ORDER_NOT_FOUND)
     if stored["status"] != "UNPAID":
         return codes.error(codes.DUPLICATE_PAYMENT)
+    # Scenario guard: after the genuine 148/748 paths, keyed on the stored
+    # order's offer (the pay RQ only carries the orderId).
+    offer = stored["offer"]
+    rule = rules.check("pay", offer["airline"], offer["ori"], offer["dest"])
+    if rule:
+        body, _ = scenario_responses.render(rule)
+        return body
     # Mocked gateway response ("PAY API adjustment" wiki): for ANTOM/YEEPAY the
     # accountNumber is the RECEIVER account of the wallet-to-wallet transaction;
     # for BPA it echoes the payer account from the request.
@@ -188,14 +220,9 @@ def pay(req: PayRequest):
     return codes.success(receipt)
 
 
-@router.post("/orderDetail/v3")
-def order_detail(req: OrderDetailRequest):
-    if not req.order_id:
-        return codes.error(codes.ORDER_ID_EMPTY)
-    stored = store.get(req.order_id)
-    if stored is None:
-        return codes.error(codes.ORDER_NOT_FOUND)
-
+def _build_order_detail_data(stored: dict) -> dict:
+    """The orderDetail success payload for a stored order. Extracted so
+    status_override scenario rules can reuse it (build, then patch status)."""
     offer = stored["offer"]
     airline = offer["airline"]
     light_segments = [_light_segment(offer)]
@@ -272,4 +299,29 @@ def order_detail(req: OrderDetailRequest):
         "contactList": stored["contacts"],
         "segments": full_segments,
     }
+    return data
+
+
+@router.post("/orderDetail/v3")
+def order_detail(req: OrderDetailRequest):
+    if not req.order_id:
+        return codes.error(codes.ORDER_ID_EMPTY)
+    stored = store.get(req.order_id)
+    if stored is None:
+        return codes.error(codes.ORDER_NOT_FOUND)
+
+    # Scenario guard: keyed on the stored order's offer; the flow is inferred
+    # from the order status (Decision 8) — UNPAID = pre-pay submitBooking
+    # polling, anything else = post-pay issuance polling.
+    offer = stored["offer"]
+    flow = "submitBooking" if stored["status"] == "UNPAID" else "issuance"
+    rule = rules.check("orderDetail", offer["airline"], offer["ori"], offer["dest"],
+                       flow=flow)
+    if rule and preset_def(rule)["kind"] != "status_override":
+        body, _ = scenario_responses.render(rule)
+        return body
+
+    data = _build_order_detail_data(stored)
+    if rule:  # status_override: e.g. stuck in ISSUING / ISSUE_FAILED
+        scenario_responses.apply_status_override(rule, data)
     return codes.success(data)

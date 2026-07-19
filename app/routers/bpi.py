@@ -13,8 +13,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
 from app.models.bpi import BpiOrderDetailRequest, BpiOrderRequest, BpiSearchRequest
-from app.services import bpi_catalog, crypto
+from app.services import bpi_catalog, crypto, scenario_responses
 from app.services.bpi_orders import store
+from app.services.scenario_rules import preset_def, rules
 
 router = APIRouter()
 
@@ -53,6 +54,14 @@ def _order_response(body: dict, encrypted: bool, status_code: int = 200):
 
 @router.post("/secondBaggage")
 def bpi_search(req: BpiSearchRequest):
+    # Scenario guard: a tsy.secondBaggage rule on any RQ segment fails the search.
+    for seg in (req.segments or []):
+        rule = rules.check("tsy.secondBaggage", seg.get("carrier"),
+                           seg.get("depAirport"), seg.get("arrAirport"))
+        if rule:
+            body, status_code = scenario_responses.render(rule)
+            return JSONResponse(content=body, status_code=status_code)
+
     # Response depends only on segments; passenger array is ignored.
     products = [
         {
@@ -84,15 +93,16 @@ async def bpi_order(request: Request):
         product_item = seg_products.get("productItem") or {}
         baggage = product_item.get("baggage") or {}
         weight = baggage.get("baggageAllowance")
-        # Business rule: certain routes are not eligible for second baggage. Fail the
-        # order hard with HTTP 500 before it is created (see BPI_DESIGN.md).
-        if bpi_catalog.is_route_blocked(seg):
-            return _order_response({
-                "auxiliaryOrderNo": None,
-                "status": "1",
-                "msg": "second baggage not available for route {}-{}".format(
-                    seg.get("depAirport", ""), seg.get("arrAirport", "")),
-            }, encrypted, status_code=500)
+        # Scenario guard (replaces the hard-coded blocked-route rule; the seed
+        # rules keep SIN->KUL / SIN->CGK failing with HTTP 500 for any carrier).
+        # Must stay BEFORE validate_product_item: blocked-route requests may
+        # carry garbage productItemIds and still expect the 500. Failure goes
+        # through _order_response so it is encrypted iff the request was.
+        rule = rules.check("tsy.order", seg.get("carrier"),
+                           seg.get("depAirport"), seg.get("arrAirport"))
+        if rule:
+            body, status_code = scenario_responses.render(rule)
+            return _order_response(body, encrypted, status_code=status_code)
         if not bpi_catalog.validate_product_item(seg, weight, product_item.get("productItemId")):
             return _order_response(dict(_ORDER_FAILURE), encrypted)
         stored_auxes.append({
@@ -113,6 +123,21 @@ def bpi_order_detail(req: BpiOrderDetailRequest):
     order = store.get(aux_no) if aux_no else None
     if order is None:
         return {"status": "1", "msg": "order not found", "data": None}
+
+    # Scenario guard: keyed on the stored order's segments (RQ only carries the
+    # order number). No pay step in TSY BPI, so flow is always "issuance".
+    matched_rule = None
+    for aux in order["passengerAuxes"]:
+        seg = aux["segment"]
+        matched_rule = rules.check("tsy.orderDetail", seg.get("carrier"),
+                                   seg.get("depAirport"), seg.get("arrAirport"),
+                                   flow="issuance")
+        if matched_rule:
+            break
+    if matched_rule and preset_def(matched_rule)["kind"] != "status_override":
+        body, _ = scenario_responses.render(matched_rule)
+        return body
+    # status_override rules fall through: build the normal payload, then patch it.
 
     # Dedupe segments, assign a stable numeric id, and link passengerAncillaries to it.
     seg_id_by_key = {}
@@ -145,16 +170,15 @@ def bpi_order_detail(req: BpiOrderDetailRequest):
             "segmentId": seg_id_by_key[bpi_catalog._segment_key(aux["segment"])],
         })
 
-    return {
-        "status": "0",
-        "msg": "success",
-        "data": {
-            "ancillaryOrderNo": order["auxiliaryOrderNo"],
-            "orderStatus": "PURCHASED",
-            "currency": bpi_catalog.CURRENCY,
-            "isCross": order["isCross"],
-            "totalPrice": round(total, 2),
-            "segments": segments,
-            "passengerAncillaries": passenger_ancillaries,
-        },
+    data = {
+        "ancillaryOrderNo": order["auxiliaryOrderNo"],
+        "orderStatus": "PURCHASED",
+        "currency": bpi_catalog.CURRENCY,
+        "isCross": order["isCross"],
+        "totalPrice": round(total, 2),
+        "segments": segments,
+        "passengerAncillaries": passenger_ancillaries,
     }
+    if matched_rule:  # status_override: e.g. stuck in PROCESSING / FAILED
+        scenario_responses.apply_status_override(matched_rule, data)
+    return {"status": "0", "msg": "success", "data": data}

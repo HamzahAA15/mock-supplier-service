@@ -9,8 +9,8 @@ endpoint decodes the ancillaryKey to validate the tier and reconstruct the
 segments echoed in the order/orderDetail responses. Restart-tolerant, no
 shared state between search and order.
 
-The baggage tiers and blocked routes are shared with the tsy-bpi version —
-same behaviour, different contract.
+The baggage tiers are shared with the tsy-bpi version — same behaviour,
+different contract. Blocked routes live in scenario_rules.SEED_RULES.
 """
 import base64
 import json
@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional
 
 from app.services.bpi_catalog import (  # shared with tsy-bpi
     BAGGAGE_TIERS,
-    BLOCKED_SECOND_BAGGAGE_ROUTES,
     CURRENCY,
     PIECE_CARRIERS,
     TIER_WEIGHTS,
@@ -98,11 +97,6 @@ def decode_ancillary_key(key: Optional[str]) -> Optional[Dict[str, Any]]:
             return None
         segments.append(dict(zip(_SEG_FIELDS, t)))
     return {"tripType": trip_type, "weight": weight, "segments": segments}
-
-
-def is_route_blocked(seg: Dict[str, Any]) -> bool:
-    """Standardized field names; same directional blocklist as tsy-bpi."""
-    return (seg.get("departureAirport"), seg.get("arrivalAirport")) in BLOCKED_SECOND_BAGGAGE_ROUTES
 
 
 def is_departure_past(seg: Dict[str, Any], now: Optional[datetime] = None) -> bool:

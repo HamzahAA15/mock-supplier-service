@@ -128,6 +128,24 @@ curl -s $BASE/flight/orderDetail/v3 -H 'Content-Type: application/json' \
   -d '{"orderId":"<orderId>"}'
 ```
 
+## Admin scenario rules
+
+Runtime-editable negative scenarios per airline + route + endpoint (see
+`SCENARIO_RULES_DESIGN.md`). Set the `ADMIN_KEY` env var to enable the admin
+plane (on Render: dashboard env var, not committed); when it is unset every
+`/admin/*` API route answers 404.
+
+- `GET /admin` — admin UI (single static page; prompts for the key and sends it
+  as `X-Admin-Key` on every call)
+- `GET /admin/rules` · `PUT /admin/rules` · `DELETE /admin/rules/{rule_id}` ·
+  `POST /admin/rules/reset` — rule CRUD (`X-Admin-Key` header required)
+- `GET /admin/presets` — endpoint/preset catalog that drives the UI dropdowns
+
+Rules are in-memory only: a restart wipes them and re-seeds the default blocked
+routes (SIN→KUL, SIN→CGK for any airline `*` on TSY order + Standardized BPI
+search/order — the former `BLOCKED_SECOND_BAGGAGE_ROUTES`). The airline field
+accepts `*` (any airline); all other fields are exact-match.
+
 ## v1 behavior notes
 
 - Every response is HTTP 200; the business result is in the body envelope

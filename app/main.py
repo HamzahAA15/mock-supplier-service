@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, bpi, flight, standardized_bpi
+from app.routers import admin, auth, bpi, flight, standardized_bpi
 
 app = FastAPI(
     title="Mock Supplier Service",
@@ -12,3 +12,4 @@ app.include_router(auth.router)
 app.include_router(flight.router)
 app.include_router(bpi.router)
 app.include_router(standardized_bpi.router)
+app.include_router(admin.router)

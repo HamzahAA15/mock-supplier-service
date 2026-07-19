@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario Rules — Admin</title>
+<style>
+  :root {
+    --ink: #1d2733; --muted: #67707c; --line: #dde3ea; --bg: #f5f7fa;
+    --card: #ffffff; --accent: #0f62fe; --danger: #c0392b; --seed: #8a6d00;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 12px;
+           padding: 18px 24px 10px; }
+  header h1 { font-size: 18px; margin: 0; }
+  #keyStatus { color: var(--muted); font-size: 12px; }
+  #changeKey { font-size: 12px; }
+  main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
+  section { background: var(--card); border: 1px solid var(--line);
+            border-radius: 8px; padding: 16px; margin-bottom: 18px; }
+  section h2 { font-size: 14px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+         margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 11px; color: var(--muted); text-transform: uppercase;
+                 letter-spacing: .04em; }
+  select, input { padding: 6px 8px; border: 1px solid var(--line);
+                  border-radius: 5px; font: inherit; background: #fff; }
+  select:disabled, input:disabled { background: var(--bg); color: var(--muted); }
+  input.short { width: 70px; } input.mid { width: 170px; }
+  button { padding: 7px 14px; border: 1px solid var(--line); border-radius: 5px;
+           background: #fff; font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line);
+           font-size: 13px; }
+  th { font-size: 11px; color: var(--muted); text-transform: uppercase;
+       letter-spacing: .04em; }
+  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 9px;
+           font-size: 11px; background: #fdf3d0; color: var(--seed);
+           border: 1px solid #eeda8f; margin-left: 6px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  #error { color: var(--danger); font-size: 13px; min-height: 18px; margin: 6px 0 0;
+           white-space: pre-line; }
+  footer { color: var(--muted); font-size: 12px; padding: 4px 24px 24px;
+           max-width: 1060px; margin: 0 auto; }
+  footer ul { margin: 4px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Scenario Rules — Admin</h1>
+  <span id="keyStatus">no key</span>
+  <button id="changeKey" type="button">Change key</button>
+</header>
+<main>
+  <section id="addPanel">
+    <h2>Add rule</h2>
+    <div class="row">
+      <div class="field"><label for="endpoint">Endpoint</label>
+        <select id="endpoint"></select></div>
+      <div class="field"><label for="preset">Preset</label>
+        <select id="preset"></select></div>
+      <div class="field"><label for="airline">Airline</label>
+        <select id="airline"></select></div>
+      <div class="field" id="airlineOtherField" hidden>
+        <label for="airlineOther">Airline code</label>
+        <input id="airlineOther" class="short" maxlength="2" placeholder="TR"></div>
+      <div class="field"><label for="origin">Origin</label>
+        <input id="origin" class="short" maxlength="3" placeholder="SIN"></div>
+      <div class="field"><label for="destination">Destination</label>
+        <input id="destination" class="short" maxlength="3" placeholder="KUL"></div>
+      <div class="field"><label for="flow">Flow (orderDetail only)</label>
+        <select id="flow"><option value="">both</option></select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="code">Code override</label>
+        <input id="code" class="short" placeholder="dflt"></div>
+      <div class="field"><label for="msg">Msg override</label>
+        <input id="msg" class="mid" placeholder="default message"></div>
+      <button id="add" class="primary" type="button">Add rule</button>
+    </div>
+    <p class="hint" id="presetHint"></p>
+    <p id="error"></p>
+  </section>
+
+  <section>
+    <h2>Active rules <button id="reset" class="danger" type="button"
+        style="float:right">Reset to defaults</button></h2>
+    <table>
+      <thead><tr>
+        <th>Endpoint</th><th>Airline</th><th>Route</th><th>Flow</th>
+        <th>Preset</th><th>Code / msg</th><th></th>
+      </tr></thead>
+      <tbody id="rulesBody"><tr><td colspan="7">loading…</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<footer>
+  Notes:
+  <ul>
+    <li>Adding a rule with the same endpoint + airline + route + flow silently
+        replaces the existing one (editing = re-adding).</li>
+    <li>Rules live in memory only: a service restart wipes them and re-seeds the
+        default blocked routes (SIN&rarr;KUL, SIN&rarr;CGK, any airline).</li>
+    <li>Airline <code>*</code> means "any airline"; origin/destination/endpoint
+        are always exact-match.</li>
+    <li><code>tsy.*</code> endpoints have fixed failure shapes — code/msg
+        overrides are disabled for them.</li>
+  </ul>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  // The admin key lives only in this variable (page itself is unauthenticated;
+  // every API call sends it as X-Admin-Key).
+  var adminKey = "";
+  var catalog = null;   // GET /admin/presets payload
+  var OTHER = "__other__";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function setError(text) { $("error").textContent = text || ""; }
+
+  function promptKey(message) {
+    var entered = window.prompt(message || "Admin key (X-Admin-Key):", "");
+    adminKey = entered === null ? "" : entered.trim();
+    $("keyStatus").textContent = adminKey ? "key set" : "no key";
+  }
+
+  function api(path, options) {
+    options = options || {};
+    options.headers = Object.assign({"X-Admin-Key": adminKey}, options.headers || {});
+    return fetch(path, options).then(function (res) {
+      if (res.status === 401) {
+        promptKey("Invalid admin key — try again:");
+        throw new Error("Invalid admin key (401).");
+      }
+      if (res.status === 404 && path.indexOf("/admin/rules/") !== 0) {
+        throw new Error("Admin API is disabled (ADMIN_KEY is not set on the server).");
+      }
+      return res.json().then(function (body) { return {status: res.status, body: body}; });
+    });
+  }
+
+  // ---- Add-rule panel behavior ------------------------------------------
+  function endpointDef() {
+    var id = $("endpoint").value;
+    for (var i = 0; i < catalog.endpoints.length; i++) {
+      if (catalog.endpoints[i].id === id) { return catalog.endpoints[i]; }
+    }
+    return null;
+  }
+
+  function fillEndpoints() {
+    $("endpoint").innerHTML = catalog.endpoints.map(function (e) {
+      return '<option value="' + e.id + '">' + e.id + "</option>";
+    }).join("");
+    $("flow").innerHTML = '<option value="">both</option>' +
+      catalog.flows.map(function (f) {
+        return '<option value="' + f + '">' + f + "</option>";
+      }).join("");
+    // Airline dropdown: catalog airlines + wildcard + free-text escape hatch
+    // (non-catalog carriers, e.g. TR, are valid rule targets).
+    $("airline").innerHTML =
+      '<option value="' + catalog.wildcard_airline + '">Any airline (*)</option>' +
+      catalog.airlines.map(function (a) {
+        return '<option value="' + a + '">' + a + "</option>";
+      }).join("") +
+      '<option value="' + OTHER + '">Other code&hellip;</option>';
+    onEndpointChange();
+  }
+
+  function onEndpointChange() {
+    var def = endpointDef();
+    var presetSelect = $("preset");
+    presetSelect.innerHTML = Object.keys(def.presets).map(function (key) {
+      return '<option value="' + key + '">' + def.presets[key].label + "</option>";
+    }).join("");
+    $("flow").disabled = !def.flow_capable;   // orderDetail endpoints only
+    if (!def.flow_capable) { $("flow").value = ""; }
+    onPresetChange();
+  }
+
+  function onPresetChange() {
+    var def = endpointDef();
+    var preset = def.presets[$("preset").value];
+    // Overrides only for business_error presets on overridable (non-tsy) endpoints.
+    var overridable = def.overridable && preset.kind === "business_error";
+    $("code").disabled = !overridable;
+    $("msg").disabled = !overridable;
+    if (!overridable) { $("code").value = ""; $("msg").value = ""; }
+    $("code").placeholder = preset.default_code !== undefined ? String(preset.default_code) : "n/a";
+    $("msg").placeholder = preset.default_msg || "n/a";
+    var hint = "kind: " + preset.kind;
+    if (preset.status) { hint += " — reports status " + preset.status; }
+    if (!def.overridable) { hint += " — tsy.* shapes are fixed (no overrides)"; }
+    $("presetHint").textContent = hint;
+  }
+
+  function selectedAirline() {
+    var value = $("airline").value;
+    return value === OTHER ? $("airlineOther").value.trim().toUpperCase() : value;
+  }
+
+  function addRule() {
+    setError("");
+    var payload = {
+      endpoint: $("endpoint").value,
+      preset: $("preset").value,
+      airline: selectedAirline(),
+      origin: $("origin").value.trim().toUpperCase(),
+      destination: $("destination").value.trim().toUpperCase(),
+      flow: $("flow").disabled || !$("flow").value ? null : $("flow").value,
+      code: $("code").disabled || !$("code").value ? null : $("code").value,
+      msg: $("msg").disabled || !$("msg").value ? null : $("msg").value
+    };
+    api("/admin/rules", {method: "PUT",
+                         headers: {"Content-Type": "application/json"},
+                         body: JSON.stringify(payload)})
+      .then(function (res) {
+        if (res.status === 422) {
+          setError((res.body.errors || ["invalid rule"]).join("\n"));
+        } else {
+          loadRules();
+        }
+      })
+      .catch(function (err) { setError(err.message); });
+  }
+
+  // ---- Rules table -------------------------------------------------------
+  function esc(value) {
+    return String(value).replace(/[&<>"]/g, function (ch) {
+      return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[ch];
+    });
+  }
+
+  function renderRules(rules) {
+    var body = $("rulesBody");
+    if (!rules.length) {
+      body.innerHTML = '<tr><td colspan="7">No rules — every request is positive.</td></tr>';
+      return;
+    }
+    body.innerHTML = rules.map(function (r) {
+      var override = (r.code !== null && r.code !== undefined ? r.code : "") +
+                     (r.msg ? ' "' + esc(r.msg) + '"' : "");
+      return "<tr>" +
+        "<td>" + esc(r.endpoint) + "</td>" +
+        "<td>" + (r.airline === catalog.wildcard_airline ? "any (*)" : esc(r.airline)) + "</td>" +
+        '<td class="mono">' + esc(r.origin) + " &rarr; " + esc(r.destination) + "</td>" +
+        "<td>" + (r.flow ? esc(r.flow) : "both") + "</td>" +
+        "<td>" + esc(r.preset) + (r.seed ? '<span class="badge">seed</span>' : "") + "</td>" +
+        "<td>" + (override || "<span style='color:var(--muted)'>defaults</span>") + "</td>" +
+        '<td><button class="danger" data-rule-id="' + esc(r.rule_id) + '">delete</button></td>' +
+        "</tr>";
+    }).join("");
+  }
+
+  function loadRules() {
+    api("/admin/rules")
+      .then(function (res) { renderRules(res.body.rules); })
+      .catch(function (err) {
+        $("rulesBody").innerHTML = '<tr><td colspan="7">' + esc(err.message) + "</td></tr>";
+      });
+  }
+
+  function deleteRule(ruleId) {
+    api("/admin/rules/" + ruleId, {method: "DELETE"})
+      .then(function (res) {
+        if (res.status === 404) {
+          setError((res.body && res.body.detail) ||
+                   "Rule not found — it may already have been deleted.");
+        }
+        loadRules();
+      })
+      .catch(function (err) { setError(err.message); });
+  }
+
+  function resetRules() {
+    if (!window.confirm("Reset to the default seed rules? All custom rules are lost.")) { return; }
+    api("/admin/rules/reset", {method: "POST"})
+      .then(function (res) { renderRules(res.body.rules); })
+      .catch(function (err) { setError(err.message); });
+  }
+
+  // ---- Boot ---------------------------------------------------------------
+  function boot() {
+    api("/admin/presets")
+      .then(function (res) {
+        catalog = res.body;
+        fillEndpoints();
+        loadRules();
+      })
+      .catch(function (err) {
+        setError(err.message);
+        $("rulesBody").innerHTML = '<tr><td colspan="7">' + esc(err.message) + "</td></tr>";
+      });
+  }
+
+  $("endpoint").addEventListener("change", onEndpointChange);
+  $("preset").addEventListener("change", onPresetChange);
+  $("airline").addEventListener("change", function () {
+    $("airlineOtherField").hidden = $("airline").value !== OTHER;
+  });
+  $("add").addEventListener("click", addRule);
+  $("reset").addEventListener("click", resetRules);
+  $("changeKey").addEventListener("click", function () { promptKey(); boot(); });
+  $("rulesBody").addEventListener("click", function (event) {
+    var id = event.target.getAttribute && event.target.getAttribute("data-rule-id");
+    if (id) { deleteRule(id); }
+  });
+
+  promptKey();
+  boot();
+})();
+</script>
+</body>
+</html>
