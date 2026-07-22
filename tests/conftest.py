@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.bpi_orders import store as bpi_store
+from app.services.notifications import store as notification_store
 from app.services.orders import store
 from app.services.scenario_rules import rules as scenario_rules
 from app.services.standardized_bpi_orders import store as standardized_bpi_store
@@ -32,11 +33,13 @@ def _reset_store():
     store.clear()
     bpi_store.clear()
     standardized_bpi_store.clear()
+    notification_store.clear()
     scenario_rules.reset()
     yield
     store.clear()
     bpi_store.clear()
     standardized_bpi_store.clear()
+    notification_store.clear()
     scenario_rules.reset()
 
 

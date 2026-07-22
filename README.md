@@ -146,6 +146,21 @@ routes (SIN→KUL, SIN→CGK for any airline `*` on TSY order + Standardized BPI
 search/order — the former `BLOCKED_SECOND_BAGGAGE_ROUTES`). The airline field
 accepts `*` (any airline); all other fields are exact-match.
 
+## Wallet notification receiver (Antom / YeePay)
+
+Partner-side receiver from the "Traveloka Wallet Payment (Antom / YeePay)"
+integration guideline, section 4. Complements the PAY API wallet support
+(`payType: ANTOM/YEEPAY` → receiver wallet `accountNumber` in the response),
+which this mock already implements.
+
+- `POST /notification` — receives `payment.success` / `refund.success` events;
+  responds `{referenceId, status}` with `ACKNOWLEDGED`, or `DUPLICATE` when the
+  `referenceId` was already delivered (at-least-once semantics). Malformed
+  bodies (missing required fields, unknown `eventType`) get HTTP 400 — a
+  permanent failure per the guideline's retry rules.
+- `GET /notifications` — mock-only inspection endpoint listing every received
+  notification with its ack status (in-memory, wiped on restart).
+
 ## v1 behavior notes
 
 - Every response is HTTP 200; the business result is in the body envelope
