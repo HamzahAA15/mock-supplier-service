@@ -88,7 +88,8 @@ preserved so existing BPI tests pass unchanged.
 | Standardized BPI | `std.baggageSearch`, `std.order`, `std.orderDetail` |
 
 Static catalog `PRESETS[endpoint] = {preset_key: {label, default_code, default_msg, kind}}`.
-`kind` drives rendering: `empty_result`, `business_error`, `http_500`, `status_override`.
+`kind` drives rendering: `empty_result`, `business_error`, `http_500`, `status_override`,
+`offer_override`.
 Examples: `search → no_results` (airline filtered out of results — a supplier with no inventory
 is not an error); `order → order_failed (500)`; `pay → payment_declined`; `std.* → 555 / 5001 / 400`;
 `tsy.* → http_500` (encrypted iff request was encrypted, per BPI_DESIGN §1.12).
@@ -100,6 +101,27 @@ Flow-specific presets for the three orderDetail endpoints:
   `issue_failed` (terminal failure status/code)
 
 UI dropdowns are driven entirely by `GET /admin/presets`; no hardcoded lists in JS.
+
+**`offer_override` presets (added 2026-07-22, MODIFIED_SERVICE_FEE 70% cap guideline):**
+unlike every other kind, these are NOT failures — the search still succeeds and the matched
+airline stays in the results, but its offer is shaped per an MSF profile
+(`inventory.MSF_PROFILES`, percents of the ADT total fare FARE+TAX so they hold for any airline):
+
+| Preset (search) | Inventory sourced |
+|---|---|
+| `msf_valid` | BASIC + MODIFIED_SERVICE_FEE; highest penalty 50%, fee = 70% cap − highest penalty (exactly at the cap) |
+| `msf_cap_violation` | BASIC + MODIFIED_SERVICE_FEE; highest penalty 50% + fee 30% = 80% > 70% (Traveloka rejects) |
+| `basic_high_penalty` | BASIC only; highest penalty 75% > 70%, `serviceFeePerPax: null` (MSF not allowed) |
+
+Guideline rules honored: MSF is never standalone (always with BASIC) and only returned when the
+/search request's product array includes `MODIFIED_SERVICE_FEE` (otherwise the offer degrades to
+BASIC with a null fee; the penalty profile still applies — it is airline policy, not a product
+attribute). `refundRefs`/`changeRefs` keep `sourcePolicy: AIRLINE_POLICY` with two guideline-style
+periods per action (early period cheaper, late period = the headline percent). Downstream
+endpoints (`preOrderVerify`/`order`/`orderDetail`) re-derive the profile from the same
+search-endpoint rule (`_msf_preset_for`) so `product`/`serviceFeePerPax` stay consistent across
+all adjusted APIs; the fee is never added to the purchase `total`. Like all offer-shaping,
+code/msg overrides are rejected (422). Tests: `tests/test_msf_inventory.py`.
 
 ## 6. Endpoint integration
 

@@ -147,7 +147,8 @@ def test_scn06_presets_catalog(client, admin_headers):
         assert e["presets"], "endpoint {} has no presets".format(e["id"])
         for preset in e["presets"].values():
             assert preset["label"] and preset["kind"] in (
-                "empty_result", "business_error", "http_500", "status_override")
+                "empty_result", "business_error", "http_500", "status_override",
+                "offer_override")
 
 
 # ---------------------------------------------------------------------------

@@ -33,6 +33,18 @@ def _light_segment(offer: dict) -> dict:
     }
 
 
+def _msf_preset_for(airline: str, ori: str, dest: str):
+    """The MSF profile key if a search-endpoint offer_override rule matches,
+    else None. Downstream endpoints (preOrderVerify/order/orderDetail) re-derive
+    the profile from the same rule so product/serviceFeePerPax stay consistent
+    across all adjusted APIs (guideline: the product identifier must be returned
+    in search, preOrderVerify, order & orderDetail)."""
+    rule = rules.check("search", airline, ori, dest)
+    if rule and preset_def(rule)["kind"] == "offer_override":
+        return rule["preset"]
+    return None
+
+
 @router.post("/search/v3")
 def search(req: SearchRequest):
     if not req.routes:
@@ -59,15 +71,29 @@ def search(req: SearchRequest):
         if not airlines:
             return codes.error(codes.NO_DATA)
 
-    # Scenario guard: a search rule FILTERS the airline out of the results (a
-    # supplier with no inventory is not an error), it never fails the search.
-    airlines = [a for a in airlines if rules.check("search", a, ori, dest) is None]
-    if not airlines:
+    # Scenario guard: an empty_result search rule FILTERS the airline out of the
+    # results (a supplier with no inventory is not an error) — it never fails
+    # the search. An offer_override rule KEEPS the airline and shapes its offer
+    # per the MSF profile instead (70% cap guideline).
+    kept, msf_presets = [], {}
+    for a in airlines:
+        rule = rules.check("search", a, ori, dest)
+        if rule is None:
+            kept.append(a)
+        elif preset_def(rule)["kind"] == "offer_override":
+            kept.append(a)
+            msf_presets[a] = rule["preset"]
+    if not kept:
         # All airlines filtered -> empty success (build_offer_data([]) crashes).
         return codes.success(scenario_responses.empty_search_data())
 
+    # Product tag rule (guideline): MSF offers are only returned when the
+    # request's product array includes MODIFIED_SERVICE_FEE — never standalone.
+    msf_requested = bool(req.product) and inventory.MSF_TAG in req.product
     counts = inventory.pax_counts(req.adult_number, req.child_number, req.infant_number)
-    return codes.success(inventory.build_offer_data(airlines, ori, dest, dep_date, counts))
+    return codes.success(inventory.build_offer_data(
+        kept, ori, dest, dep_date, counts,
+        msf_presets=msf_presets, msf_requested=msf_requested))
 
 
 @router.post("/preOrderVerify/v3")
@@ -83,8 +109,10 @@ def pre_order_verify(req: VerifyRequest):
         body, _ = scenario_responses.render(rule)
         return body
     # Pax counts are not encoded in the offerKey; verify prices the adult view.
+    preset = _msf_preset_for(offer["airline"], offer["ori"], offer["dest"])
     data = inventory.build_offer_data(
-        [offer["airline"]], offer["ori"], offer["dest"], offer["dep_date"], {"ADT": 1}
+        [offer["airline"]], offer["ori"], offer["dest"], offer["dep_date"], {"ADT": 1},
+        msf_presets={offer["airline"]: preset} if preset else None,
     )
     return codes.success(data)
 
@@ -180,6 +208,7 @@ def order(req: OrderRequest):
 
     stored = store.create(offer, passengers, contacts, added_ancillary, total)
 
+    preset = _msf_preset_for(airline, offer["ori"], offer["dest"])
     data = {
         "currency": config.CURRENCY,
         "total": total,
@@ -190,8 +219,11 @@ def order(req: OrderRequest):
         "serviceFeePerPax": None,
         "addedAncillary": added_ancillary,
     }
+    if preset:
+        data.update(inventory.msf_offer_fields(airline, preset))
     data.update(inventory.build_offer_data(
-        [airline], offer["ori"], offer["dest"], offer["dep_date"], counts
+        [airline], offer["ori"], offer["dest"], offer["dep_date"], counts,
+        msf_presets={airline: preset} if preset else None,
     ))
     return codes.success(data)
 
@@ -230,8 +262,10 @@ def _build_order_detail_data(stored: dict) -> dict:
     for p in stored["passengers"]:
         if p.get("passengerType") in counts:
             counts[p["passengerType"]] += 1
+    preset = _msf_preset_for(airline, offer["ori"], offer["dest"])
     full = inventory.build_offer_data(
-        [airline], offer["ori"], offer["dest"], offer["dep_date"], counts
+        [airline], offer["ori"], offer["dest"], offer["dep_date"], counts,
+        msf_presets={airline: preset} if preset else None,
     )
     # Top-level segments are FULL objects (matches the live supplier); the nested
     # pnrs[].segments / ancillaryList[].segments stay light (dep/arr/flightNumber only).
@@ -259,12 +293,14 @@ def _build_order_detail_data(stored: dict) -> dict:
                 "segments": light_segments,
             })
 
+    order_info_msf = (inventory.msf_offer_fields(airline, preset) if preset
+                      else {"product": list(config.PRODUCT), "serviceFeePerPax": None})
     data = {
         "orderInfo": {
             "orderId": stored["orderId"],
-            "product": list(config.PRODUCT),
+            "product": order_info_msf["product"],
             "issuanceTimeInMins": config.ISSUANCE_TIME_IN_MINS,
-            "serviceFeePerPax": None,
+            "serviceFeePerPax": order_info_msf["serviceFeePerPax"],
             "status": stored["status"],
             "createdTime": stored["createdTime"],
             "updateTime": stored["updateTime"],
