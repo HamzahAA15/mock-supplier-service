@@ -47,6 +47,11 @@ def is_overridable(endpoint: str) -> bool:
 #   business_error  -> the contract's error envelope (code/msg overridable)
 #   http_500        -> TSY hard failure (HTTP 500, string-status envelope)
 #   status_override -> orderDetail succeeds but reports the preset's `status`
+#   offer_override  -> search still succeeds; the matched airline's offer is
+#                      shaped per an MSF profile (inventory.MSF_PROFILES).
+#                      Never rendered via scenario_responses — the search
+#                      handler keeps the airline and passes the preset through
+#                      to inventory.build_offer_data.
 # Default codes/msgs are literals on purpose (services layer must not import
 # routers — avoids cycles); comments point at the constants they mirror.
 PRESETS = {
@@ -54,6 +59,15 @@ PRESETS = {
         # A supplier with no inventory is not an error: the airline is simply
         # filtered out of the results (design section 5).
         "no_results": {"label": "No results (airline filtered out)", "kind": "empty_result"},
+        # MODIFIED_SERVICE_FEE 70% cap guideline (Lark doc, Jul 17 2026).
+        # Percent-of-ADT-total-fare profiles live in inventory.MSF_PROFILES;
+        # the preset key doubles as the profile key.
+        "msf_valid": {"label": "MSF: fee + penalty at 70% cap (valid)",
+                      "kind": "offer_override"},
+        "msf_cap_violation": {"label": "MSF: fee + penalty above 70% cap (violation)",
+                              "kind": "offer_override"},
+        "basic_high_penalty": {"label": "BASIC only: penalty above 70% of fare",
+                               "kind": "offer_override"},
     },
     "preOrderVerify": {
         "verify_failed": {"label": "Verify failed (no data)", "kind": "business_error",
